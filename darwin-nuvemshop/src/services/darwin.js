@@ -1,23 +1,21 @@
 require('dotenv').config();
 
+const axios = require('axios');
+
 const BASE_URL = process.env.BASE_URL;
 const API_KEY = process.env.API_KEY;
 
-const headers = {
-  'X-Api-Key': API_KEY,
-  'Content-Type': 'application/json',
-};
+const client = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'X-Api-Key': API_KEY,
+    'Content-Type': 'application/json',
+  },
+});
 
 async function request(method, path, body) {
-  const opts = { method, headers };
-  if (body) opts.body = JSON.stringify(body);
-
-  const res = await fetch(`${BASE_URL}${path}`, opts);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Darwin API ${method} ${path} → ${res.status}: ${text}`);
-  }
-  return res.json();
+  const res = await client.request({ method, url: path, data: body });
+  return res.data;
 }
 
 async function getChannels() {
