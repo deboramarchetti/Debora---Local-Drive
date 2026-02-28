@@ -31,20 +31,6 @@ async function main() {
 
   await section('Webhooks', () => darwin.getWebhooks());
 
-  const eventTypes = [
-    'session.opened',
-    'session.closed',
-    'session.analyzed',
-    'session.forwarded',
-    'session.stage.transitioned',
-  ];
-
-  for (const type of eventTypes) {
-    await section(`Recent events: ${type}`, () =>
-      darwin.getWebhookEvents(type, 3)
-    );
-  }
-
   console.log('\nDone.');
 }
 

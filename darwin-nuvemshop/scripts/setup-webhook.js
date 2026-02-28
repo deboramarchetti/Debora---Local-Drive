@@ -10,35 +10,28 @@ const WEBHOOK_URL = process.argv[2];
 
 if (!WEBHOOK_URL) {
   console.error('Usage: node scripts/setup-webhook.js <PUBLIC_URL>');
-  console.error('Example: node scripts/setup-webhook.js https://abc123.ngrok.io/webhook');
+  console.error('Example: node scripts/setup-webhook.js https://abc123.ngrok-free.app/webhook');
   process.exit(1);
 }
 
+// Use wildcards to subscribe to all session and function events
 const EVENT_TYPES = [
-  'session.opened',
-  'session.closed',
-  'session.forwarded',
-  'session.forwarded.qualified',
-  'session.forwarded.escalated',
-  'session.forwarded.recovered',
-  'session.analyzed',
-  'session.stage.transitioned',
-  'function.call.started',
-  'function.call.completed',
+  'session.*',
+  'function.call.*',
 ];
 
 async function main() {
   console.log('Checking existing webhooks...');
   const existing = await darwin.getWebhooks();
-  const webhooks = existing.data || existing || [];
+  const webhooks = Array.isArray(existing) ? existing : (existing.data || []);
 
-  const alreadyExists = Array.isArray(webhooks) && webhooks.find(
-    (w) => w.url === WEBHOOK_URL
+  const alreadyExists = webhooks.find(
+    (w) => w.webhookUrl === WEBHOOK_URL || w.url === WEBHOOK_URL
   );
 
   if (alreadyExists) {
     console.log(`Webhook already registered for ${WEBHOOK_URL}`);
-    console.log('ID:', alreadyExists.id);
+    console.log('ID:', alreadyExists.webhookId || alreadyExists.id);
     return;
   }
 
@@ -49,14 +42,15 @@ async function main() {
   console.log('Webhook created:', JSON.stringify(result, null, 2));
 
   const config = {
-    webhookId: result.id || result.data?.id,
-    secret: result.secret || result.data?.secret,
+    webhookId: result.webhookId || result.id,
+    secret: result.secret,
     url: WEBHOOK_URL,
     types: EVENT_TYPES,
     createdAt: new Date().toISOString(),
   };
 
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+  console.log(`\nIMPORTANT: Save the secret above! It's needed to verify webhook signatures.`);
   console.log(`Config saved to ${CONFIG_FILE}`);
 }
 

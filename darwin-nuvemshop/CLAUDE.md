@@ -83,6 +83,14 @@ npm run query            # consultar sessões no banco local
 
 ---
 
+## Autenticação
+
+A Darwin API usa o header `X-API-KEY` (tudo maiúsculo) para autenticação. Documentação oficial:
+- [Authentication](https://help.getdarwin.ai/en/articles/12650580-authentication)
+- [Webhooks](https://help.getdarwin.ai/en/articles/12650608-webhooks)
+
+---
+
 ## Ordem de execução
 
 ```
@@ -94,6 +102,13 @@ npm run query            # consultar sessões no banco local
 6. npm run dev              → subir o servidor
 7. npm run query            → consultar sessões salvas
 ```
+
+---
+
+## Requisito: Node.js 22 LTS
+
+O pacote `better-sqlite3` requer Node 22 LTS (não funciona com Node 25+).
+Para instalar: `brew install node@22` ou usar `nvm install 22`.
 
 ---
 

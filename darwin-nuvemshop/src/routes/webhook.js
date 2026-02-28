@@ -45,16 +45,16 @@ const insertSmartField = db.prepare(`
 function extractCommon(body) {
   const data = body.data || body;
   return {
-    eventType: body.type || body.event || 'unknown',
-    conversationId: data.conversationId || data.conversation_id || null,
-    sessionId: data.sessionId || data.session_id || null,
-    threadId: data.threadId || data.thread_id || null,
-    channelId: data.channelId || data.channel_id || null,
-    channelName: data.channelName || data.channel_name || null,
-    conversationTitle: data.conversationTitle || data.conversation_title || null,
-    agentId: data.agentId || data.agent_id || null,
-    agentName: data.agentName || data.agent_name || null,
-    timestamp: data.timestamp || body.timestamp || new Date().toISOString(),
+    eventType: body.eventType || 'unknown',
+    conversationId: data.conversationId || null,
+    sessionId: data.sessionId || null,
+    threadId: data.threadId || null,
+    channelId: data.channelId || null,
+    channelName: data.channelName || null,
+    conversationTitle: data.conversationTitle || null,
+    agentId: data.agentId || null,
+    agentName: data.agentName || null,
+    timestamp: data.timestamp || new Date().toISOString(),
     data,
   };
 }
@@ -71,6 +71,8 @@ router.post('/', (req, res) => {
     const body = req.body;
     const raw = JSON.stringify(body);
     const info = extractCommon(body);
+
+    console.log(`[webhook] Received: ${info.eventType} | conversation: ${info.conversationId}`);
 
     // 1. Always save the raw event
     insertEvent.run(
@@ -96,8 +98,7 @@ router.post('/', (req, res) => {
         created_at: info.timestamp,
         raw_event: raw,
       });
-    } else if (info.eventType === 'session.closed') {
-      // Ensure session row exists before updating
+    } else if (info.eventType === 'session.closed' || info.eventType === 'session.closed.unforwarded') {
       upsertSession.run({
         conversation_id: info.conversationId,
         session_id: info.sessionId,
@@ -112,7 +113,7 @@ router.post('/', (req, res) => {
       updateSessionClosed.run(info.timestamp, raw, info.conversationId);
     } else if (info.eventType.startsWith('session.forwarded')) {
       const forwardType = detectForwardType(info.eventType);
-      const forwardedTo = info.data.forwardedToName || info.data.forwarded_to_name || null;
+      const forwardedTo = info.data.forwardedToName || null;
 
       upsertSession.run({
         conversation_id: info.conversationId,
@@ -142,16 +143,16 @@ router.post('/', (req, res) => {
       updateSessionAnalyzed.run(summary, info.timestamp, raw, info.conversationId);
 
       // Save smart fields
-      const smartFields = info.data.smartFields || info.data.smart_fields || [];
+      const smartFields = info.data.smartFields || [];
       for (const sf of smartFields) {
-        const name = sf.name || sf.field_name || sf.key;
-        const value = sf.value || sf.field_value;
+        const name = sf.name || sf.key;
+        const value = sf.value;
         if (name !== undefined && value !== undefined) {
           insertSmartField.run(info.conversationId, String(name), String(value));
         }
       }
     }
-    // session.stage.transitioned and others → already saved in events table
+    // session.stage.transitioned, function.call.* and others → already saved in events table
 
     res.status(200).json({ received: true });
   } catch (err) {
