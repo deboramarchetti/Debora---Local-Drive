@@ -1,0 +1,21 @@
+{
+  "name": "darwin-nuvemshop",
+  "version": "1.0.0",
+  "description": "Integração Darwin AI + Nuvemshop — webhooks e banco de dados local",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "inspect": "node scripts/inspect.js",
+    "setup-webhook": "node scripts/setup-webhook.js",
+    "query": "node scripts/query-sessions.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "dotenv": "^16.4.0",
+    "express": "^4.18.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
