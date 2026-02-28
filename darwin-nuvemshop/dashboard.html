@@ -233,25 +233,7 @@
 </div>
 
 <script>
-  // ====== CONFIGURACAO ======
-  const API_KEY = 'darwin_b2de65c0d53c4f3ee4ac654d63d47f3d8e8bb6b7919a24ec0b91c80ce93631fa';
-  const BASE_URL = 'https://api.getdarwin.ai';
-  const CHANNEL_ID = '13386';
-  // ===========================
-
   let rawData = null;
-
-  // Darwin API client
-  async function darwinGet(path) {
-    const res = await fetch(BASE_URL + path, {
-      headers: { 'X-API-KEY': API_KEY }
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`${res.status} — ${text || res.statusText}`);
-    }
-    return res.json();
-  }
 
   // Tab switching
   document.getElementById('tabs').addEventListener('click', (e) => {
@@ -345,7 +327,7 @@
     return 1;
   }
 
-  // Load all data from Darwin API
+  // Load all data via local proxy (/api/all)
   async function loadAll() {
     const dot = document.getElementById('statusDot');
     const text = document.getElementById('statusText');
@@ -358,48 +340,39 @@
         '<div class="loading-state"><div class="spinner"></div><p>Carregando...</p></div>';
     });
 
-    const tasks = [
-      { key: 'channels', path: '/v1/channels' },
-      { key: 'pipelines', path: '/v1/pipelines' },
-      { key: 'smartFields', path: '/v1/agent/smart-fields' },
-      { key: 'templates', path: '/v1/channel/' + CHANNEL_ID + '/templates' },
-      { key: 'sourceParameters', path: '/v1/agent/source-parameters' },
-      { key: 'webhooks', path: '/v1/webhook' },
-    ];
+    try {
+      const res = await fetch('/api/all');
+      if (!res.ok) throw new Error('Servidor retornou ' + res.status);
+      const json = await res.json();
+      rawData = json;
 
-    const results = {};
-    const errors = {};
+      const data = json.data || {};
+      const errors = json.errors || {};
 
-    await Promise.all(tasks.map(async ({ key, path }) => {
-      try {
-        results[key] = await darwinGet(path);
-      } catch (err) {
-        errors[key] = err.message;
-      }
-    }));
+      sections.forEach(key => {
+        if (errors[key]) {
+          showError('table-' + key, typeof errors[key] === 'string' ? errors[key] : JSON.stringify(errors[key]));
+        } else {
+          renderTable('table-' + key, data[key]);
+          document.getElementById('badge-' + key).textContent = countItems(data[key]);
+        }
+      });
 
-    rawData = { data: results, errors: Object.keys(errors).length ? errors : undefined };
-
-    // Render each section
-    sections.forEach(key => {
-      if (errors[key]) {
-        showError('table-' + key, errors[key]);
+      const errorCount = Object.keys(errors).length;
+      if (errorCount === 0) {
+        dot.className = 'status-dot ok';
+        text.textContent = 'Conectado';
+      } else if (errorCount < 6) {
+        dot.className = 'status-dot ok';
+        text.textContent = errorCount + ' erro(s)';
       } else {
-        renderTable('table-' + key, results[key]);
-        document.getElementById('badge-' + key).textContent = countItems(results[key]);
+        dot.className = 'status-dot error';
+        text.textContent = 'Erro de conexao';
       }
-    });
-
-    const errorCount = Object.keys(errors).length;
-    if (errorCount === 0) {
-      dot.className = 'status-dot ok';
-      text.textContent = 'Conectado';
-    } else if (errorCount < 6) {
-      dot.className = 'status-dot ok';
-      text.textContent = errorCount + ' erro(s)';
-    } else {
+    } catch (err) {
       dot.className = 'status-dot error';
-      text.textContent = 'Erro de conexao';
+      text.textContent = 'Erro: ' + err.message;
+      sections.forEach(key => showError('table-' + key, err.message));
     }
   }
 
