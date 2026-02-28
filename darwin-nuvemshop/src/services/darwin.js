@@ -4,7 +4,7 @@ const BASE_URL = process.env.BASE_URL;
 const API_KEY = process.env.API_KEY;
 
 const headers = {
-  'Authorization': `Bearer ${API_KEY}`,
+  'X-Api-Key': API_KEY,
   'Content-Type': 'application/json',
 };
 
