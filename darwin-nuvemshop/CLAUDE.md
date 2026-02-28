@@ -58,15 +58,27 @@ Três tabelas criadas automaticamente em `src/db.js`:
 
 ## Endpoints
 
+### Dashboard
+- `GET /` — página HTML com tabelas mostrando todos os dados da API
+
+### API (consulta a Darwin API em tempo real)
+- `GET /api/all` — busca tudo em paralelo (channels, pipelines, smart fields, templates, source parameters, webhooks)
+- `GET /api/channels` — canais de comunicação
+- `GET /api/pipelines` — pipelines configurados
+- `GET /api/smart-fields` — campos extraídos pela IA
+- `GET /api/templates/:channelId?` — templates de mensagem (default: canal Nuvemshop)
+- `GET /api/source-parameters` — parâmetros de origem
+- `GET /api/webhooks` — webhooks registrados
+
 ### Webhook
 - `POST /webhook` — recebe eventos da Darwin, salva em events e faz upsert em sessions
 
-### Consulta
-- `GET /sessions` — lista paginada (?page=1&limit=20)
-- `GET /sessions/stats` — totais por status, forwards, média por dia
-- `GET /sessions/:conversationId` — detalhe + smart fields + events
-- `GET /events` — log de eventos (?type=session.analyzed)
-- `GET /smart-fields` — smart fields (?field=nome)
+### Banco local (consulta SQLite)
+- `GET /db/sessions` — lista paginada (?page=1&limit=20)
+- `GET /db/sessions/stats` — totais por status, forwards, média por dia
+- `GET /db/sessions/:conversationId` — detalhe + smart fields + events
+- `GET /db/events` — log de eventos (?type=session.analyzed)
+- `GET /db/smart-fields` — smart fields (?field=nome)
 - `GET /health` — health check
 
 ---

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Darwin + Nuvemshop — Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    header h1 span { color: #7c3aed; }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #7c3aed;
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: #6d28d9; }
+
+    .btn-outline {
+      background: transparent;
+      color: #ccc;
+      border: 1px solid #444;
+    }
+
+    .btn-outline:hover { border-color: #7c3aed; color: #fff; }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .status-dot.ok { background: #22c55e; }
+    .status-dot.error { background: #ef4444; }
+    .status-dot.loading { background: #f59e0b; animation: pulse 1s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-text {
+      color: #aaa;
+      font-size: 13px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      background: #fff;
+      border-bottom: 2px solid #e5e7eb;
+      padding: 0 32px;
+      overflow-x: auto;
+    }
+
+    .tab {
+      padding: 14px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .tab:hover { color: #333; }
+
+    .tab.active {
+      color: #7c3aed;
+      border-bottom-color: #7c3aed;
+    }
+
+    .tab .badge {
+      background: #e5e7eb;
+      color: #666;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .tab.active .badge {
+      background: #ede9fe;
+      color: #7c3aed;
+    }
+
+    /* Content area */
+    .content {
+      padding: 24px 32px;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    /* Tables */
+    .table-wrapper {
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .table-header h3 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .table-header .subtitle {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      background: #fafbfc;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    td {
+      padding: 12px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid #f0f0f0;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr:hover td { background: #fafbfc; }
+
+    /* Tags */
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .tag-purple { background: #ede9fe; color: #7c3aed; }
+    .tag-green { background: #dcfce7; color: #16a34a; }
+    .tag-blue { background: #dbeafe; color: #2563eb; }
+    .tag-yellow { background: #fef9c3; color: #a16207; }
+    .tag-gray { background: #f3f4f6; color: #666; }
+
+    /* Loading & Error */
+    .loading-state, .error-state, .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+    }
+
+    .loading-state p { color: #888; font-size: 14px; }
+
+    .error-state {
+      color: #dc2626;
+    }
+
+    .error-state p {
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .empty-state {
+      color: #999;
+    }
+
+    .empty-state p { font-size: 14px; }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #7c3aed;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* JSON viewer */
+    .json-toggle {
+      color: #7c3aed;
+      cursor: pointer;
+      font-size: 12px;
+      text-decoration: underline;
+    }
+
+    .json-viewer {
+      display: none;
+      background: #1a1a2e;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 6px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-top: 8px;
+    }
+
+    .json-viewer.open { display: block; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header { padding: 16px; }
+      .tabs { padding: 0 16px; }
+      .content { padding: 16px; }
+      .tab { padding: 12px 14px; font-size: 13px; }
+      td, th { padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Darwin <span>+</span> Nuvemshop</h1>
+  <div class="header-actions">
+    <span class="status-text">
+      <span class="status-dot loading" id="statusDot"></span>
+      <span id="statusText">Conectando...</span>
+    </span>
+    <button class="btn btn-primary" onclick="loadAll()">Atualizar Dados</button>
+    <button class="btn btn-outline" onclick="toggleRawJson()">Ver JSON</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <div class="tab active" data-panel="channels">Channels <span class="badge" id="badge-channels">-</span></div>
+  <div class="tab" data-panel="pipelines">Pipelines <span class="badge" id="badge-pipelines">-</span></div>
+  <div class="tab" data-panel="smartFields">Smart Fields <span class="badge" id="badge-smartFields">-</span></div>
+  <div class="tab" data-panel="templates">Templates <span class="badge" id="badge-templates">-</span></div>
+  <div class="tab" data-panel="sourceParameters">Source Params <span class="badge" id="badge-sourceParameters">-</span></div>
+  <div class="tab" data-panel="webhooks">Webhooks <span class="badge" id="badge-webhooks">-</span></div>
+</nav>
+
+<div class="content">
+  <!-- Channels -->
+  <div class="panel active" id="panel-channels">
+    <div class="table-wrapper">
+      <div class="table-header">
+        <div>
+          <h3>Channels (Canais)</h3>
+          <div class="subtitle">Canais de comunicação conectados</div>
+        </div>
+      </div>
+      <div id="table-channels">
+        <div class="loading-state"><div class="spinner"></div><p>Carregando channels...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipelines -->
+  <div class="panel" id="panel-pipelines">
+    <div class="table-wrapper">
+      <div class="table-header">
+        <div>
+          <h3>Pipelines</h3>
+          <div class="subtitle">Pipelines de qualificação e fluxos</div>
+        </div>
+      </div>
+      <div id="table-pipelines">
+        <div class="loading-state"><div class="spinner"></div><p>Carregando pipelines...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Smart Fields -->
+  <div class="panel" id="panel-smartFields">
+    <div class="table-wrapper">
+      <div class="table-header">
+        <div>
+          <h3>Smart Fields</h3>
+          <div class="subtitle">Campos extraídos automaticamente pela IA</div>
+        </div>
+      </div>
+      <div id="table-smartFields">
+        <div class="loading-state"><div class="spinner"></div><p>Carregando smart fields...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Templates -->
+  <div class="panel" id="panel-templates">
+    <div class="table-wrapper">
+      <div class="table-header">
+        <div>
+          <h3>Templates</h3>
+          <div class="subtitle">Templates de mensagem do canal Nuvemshop</div>
+        </div>
+      </div>
+      <div id="table-templates">
+        <div class="loading-state"><div class="spinner"></div><p>Carregando templates...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Source Parameters -->
+  <div class="panel" id="panel-sourceParameters">
+    <div class="table-wrapper">
+      <div class="table-header">
+        <div>
+          <h3>Source Parameters</h3>
+          <div class="subtitle">Parâmetros de origem configurados</div>
+        </div>
+      </div>
+      <div id="table-sourceParameters">
+        <div class="loading-state"><div class="spinner"></div><p>Carregando source parameters...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Webhooks -->
+  <div class="panel" id="panel-webhooks">
+    <div class="table-wrapper">
+      <div class="table-header">
+        <div>
+          <h3>Webhooks</h3>
+          <div class="subtitle">Webhooks registrados na plataforma</div>
+        </div>
+      </div>
+      <div id="table-webhooks">
+        <div class="loading-state"><div class="spinner"></div><p>Carregando webhooks...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Raw JSON -->
+  <div class="json-viewer" id="rawJson"></div>
+</div>
+
+<script>
+  // State
+  let rawData = null;
+
+  // Tab switching
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
+
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+
+    tab.classList.add('active');
+    const panel = document.getElementById('panel-' + tab.dataset.panel);
+    if (panel) panel.classList.add('active');
+  });
+
+  // Toggle raw JSON
+  function toggleRawJson() {
+    const el = document.getElementById('rawJson');
+    el.classList.toggle('open');
+    if (el.classList.contains('open') && rawData) {
+      el.textContent = JSON.stringify(rawData, null, 2);
+    }
+  }
+
+  // Render a generic table from an array of objects
+  function renderTable(containerId, rows, columns) {
+    const container = document.getElementById(containerId);
+
+    if (!rows || (Array.isArray(rows) && rows.length === 0)) {
+      container.innerHTML = '<div class="empty-state"><p>Nenhum dado encontrado</p></div>';
+      return;
+    }
+
+    // Handle non-array responses (single object)
+    if (!Array.isArray(rows)) {
+      rows = [rows];
+    }
+
+    // Auto-detect columns if not provided
+    if (!columns) {
+      const allKeys = new Set();
+      rows.forEach(row => Object.keys(row).forEach(k => allKeys.add(k)));
+      columns = Array.from(allKeys).map(key => ({ key, label: formatLabel(key) }));
+    }
+
+    let html = '<table><thead><tr>';
+    columns.forEach(col => {
+      html += `<th>${col.label}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    rows.forEach(row => {
+      html += '<tr>';
+      columns.forEach(col => {
+        const val = getNestedValue(row, col.key);
+        html += `<td>${formatValue(val, col)}</td>`;
+      });
+      html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  function getNestedValue(obj, key) {
+    return key.split('.').reduce((o, k) => (o && o[k] !== undefined) ? o[k] : null, obj);
+  }
+
+  function formatLabel(key) {
+    return key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/[_-]/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .trim();
+  }
+
+  function formatValue(val, col) {
+    if (val === null || val === undefined) return '<span style="color:#ccc">—</span>';
+    if (typeof val === 'boolean') {
+      return val
+        ? '<span class="tag tag-green">Sim</span>'
+        : '<span class="tag tag-gray">Não</span>';
+    }
+    if (typeof val === 'object') {
+      if (Array.isArray(val)) {
+        if (val.length === 0) return '<span style="color:#ccc">[]</span>';
+        if (typeof val[0] === 'string') {
+          return val.map(v => `<span class="tag tag-blue">${escapeHtml(v)}</span>`).join(' ');
+        }
+        return `<span class="tag tag-purple">${val.length} items</span>`;
+      }
+      return `<span class="tag tag-yellow">objeto</span>`;
+    }
+    if (col && col.type === 'tag') {
+      return `<span class="tag tag-purple">${escapeHtml(String(val))}</span>`;
+    }
+    // Check if it looks like a date
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+      try {
+        const d = new Date(val);
+        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      } catch {
+        return escapeHtml(String(val));
+      }
+    }
+    return escapeHtml(String(val));
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showError(containerId, message) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = `<div class="error-state"><p>Erro: ${escapeHtml(message)}</p></div>`;
+  }
+
+  function countItems(data) {
+    if (!data) return 0;
+    if (Array.isArray(data)) return data.length;
+    if (typeof data === 'object') return Object.keys(data).length;
+    return 1;
+  }
+
+  // Load all data
+  async function loadAll() {
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+
+    dot.className = 'status-dot loading';
+    text.textContent = 'Carregando...';
+
+    // Reset tables to loading state
+    ['channels', 'pipelines', 'smartFields', 'templates', 'sourceParameters', 'webhooks'].forEach(key => {
+      document.getElementById('table-' + key).innerHTML =
+        '<div class="loading-state"><div class="spinner"></div><p>Carregando...</p></div>';
+    });
+
+    try {
+      const res = await fetch('/api/all');
+      const json = await res.json();
+      rawData = json;
+
+      const data = json.data || {};
+      const errors = json.errors || {};
+
+      // Channels
+      if (errors.channels) {
+        showError('table-channels', errors.channels);
+      } else {
+        renderTable('table-channels', data.channels);
+        document.getElementById('badge-channels').textContent = countItems(data.channels);
+      }
+
+      // Pipelines
+      if (errors.pipelines) {
+        showError('table-pipelines', errors.pipelines);
+      } else {
+        renderTable('table-pipelines', data.pipelines);
+        document.getElementById('badge-pipelines').textContent = countItems(data.pipelines);
+      }
+
+      // Smart Fields
+      if (errors.smartFields) {
+        showError('table-smartFields', errors.smartFields);
+      } else {
+        renderTable('table-smartFields', data.smartFields);
+        document.getElementById('badge-smartFields').textContent = countItems(data.smartFields);
+      }
+
+      // Templates
+      if (errors.templates) {
+        showError('table-templates', errors.templates);
+      } else {
+        renderTable('table-templates', data.templates);
+        document.getElementById('badge-templates').textContent = countItems(data.templates);
+      }
+
+      // Source Parameters
+      if (errors.sourceParameters) {
+        showError('table-sourceParameters', errors.sourceParameters);
+      } else {
+        renderTable('table-sourceParameters', data.sourceParameters);
+        document.getElementById('badge-sourceParameters').textContent = countItems(data.sourceParameters);
+      }
+
+      // Webhooks
+      if (errors.webhooks) {
+        showError('table-webhooks', errors.webhooks);
+      } else {
+        renderTable('table-webhooks', data.webhooks);
+        document.getElementById('badge-webhooks').textContent = countItems(data.webhooks);
+      }
+
+      // Update status
+      const errorCount = Object.keys(errors).length;
+      if (errorCount === 0) {
+        dot.className = 'status-dot ok';
+        text.textContent = 'Conectado — dados carregados';
+      } else if (errorCount < 6) {
+        dot.className = 'status-dot ok';
+        text.textContent = `Conectado — ${errorCount} erro(s)`;
+      } else {
+        dot.className = 'status-dot error';
+        text.textContent = 'Erro de conexão';
+      }
+
+    } catch (err) {
+      dot.className = 'status-dot error';
+      text.textContent = 'Erro: ' + err.message;
+
+      ['channels', 'pipelines', 'smartFields', 'templates', 'sourceParameters', 'webhooks'].forEach(key => {
+        showError('table-' + key, err.message);
+      });
+    }
+  }
+
+  // Load on page load
+  loadAll();
+</script>
+
+</body>
+</html>
