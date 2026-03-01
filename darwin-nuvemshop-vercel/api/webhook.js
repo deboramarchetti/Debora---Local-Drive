@@ -12,13 +12,15 @@ export default async function handler(req, res) {
     const raw = JSON.stringify(body);
     const info = extractCommon(body);
 
+    console.log(`[webhook] ${info.eventType} | conv=${info.conversationId} | title=${info.conversationTitle}`);
+
     // 1. Sempre salva o evento bruto
     await sql`
       INSERT INTO events (event_type, conversation_id, session_id, agent_id, agent_name, event_timestamp, raw_payload)
       VALUES (${info.eventType}, ${info.conversationId}, ${info.sessionId}, ${info.agentId}, ${info.agentName}, ${info.timestamp}, ${raw})
     `;
 
-    // 2. Upsert da sessão de acordo com o tipo
+    // 2. Upsert da sessao de acordo com o tipo
     if (info.eventType === 'session.opened') {
       await upsertSession(info, 'open', raw);
     } else if (info.eventType === 'session.closed' || info.eventType === 'session.closed.unforwarded') {
@@ -43,25 +45,30 @@ export default async function handler(req, res) {
         UPDATE sessions SET summary=${summary}, summarized_at=${info.timestamp}, raw_event=${raw}, updated_at=NOW()
         WHERE conversation_id=${info.conversationId}
       `;
-      // Smart fields
-      const smartFields = info.data.smartFields || [];
-      for (const sf of smartFields) {
-        const name = sf.name || sf.key;
-        const value = sf.value;
-        if (name !== undefined && value !== undefined) {
-          await sql`
-            INSERT INTO smart_fields (conversation_id, field_name, field_value)
-            VALUES (${info.conversationId}, ${String(name)}, ${String(value)})
-          `;
+    }
+
+    // 3. Extrai smart fields de QUALQUER evento que os contenha
+    if (info.conversationId) {
+      const extracted = extractSmartFieldsFromPayload(body);
+      if (extracted.length > 0) {
+        await saveSmartFields(info.conversationId, extracted);
+      }
+
+      // 4. Na abertura ou fechamento, extrai metadados basicos como smart fields
+      if (info.eventType === 'session.opened' ||
+          info.eventType === 'session.closed' ||
+          info.eventType === 'session.closed.unforwarded' ||
+          info.eventType.startsWith('session.forwarded')) {
+        const metaFields = extractMetadataFields(info);
+        if (metaFields.length > 0) {
+          await saveSmartFields(info.conversationId, metaFields);
         }
       }
     }
-    // session.stage.transitioned, function.call.* → já salvos na tabela events
 
     return res.status(200).json({ received: true });
   } catch (err) {
     console.error('[webhook] Error:', err);
-    // Sempre 200 pra Darwin não retentar
     return res.status(200).json({ received: true, error: err.message });
   }
 }
@@ -90,6 +97,115 @@ function detectForwardType(eventType) {
   if (eventType.includes('escalated')) return 'escalated';
   if (eventType.includes('recovered')) return 'recovered';
   return null;
+}
+
+/**
+ * Tenta encontrar smart fields no payload do webhook,
+ * suportando diferentes estruturas que a Darwin pode enviar.
+ */
+function extractSmartFieldsFromPayload(body) {
+  const fields = [];
+  const data = body.data || body;
+
+  // Busca em multiplos caminhos possiveis
+  const candidates = [
+    data.smartFields,
+    data.smart_fields,
+    data.fields,
+    body.smartFields,
+    body.smart_fields,
+  ];
+
+  for (const arr of candidates) {
+    if (Array.isArray(arr) && arr.length > 0) {
+      for (const sf of arr) {
+        const name = sf.name || sf.key || sf.field_name || sf.fieldName;
+        const value = sf.value || sf.field_value || sf.fieldValue;
+        if (name !== undefined && value !== undefined && String(value).trim() !== '') {
+          fields.push({ name: String(name), value: String(value) });
+        }
+      }
+    }
+  }
+
+  // Tambem verifica se ha smart fields como objeto chave-valor
+  const objCandidates = [data.extractedFields, data.extracted_fields];
+  for (const obj of objCandidates) {
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      for (const [k, v] of Object.entries(obj)) {
+        if (v !== null && v !== undefined && String(v).trim() !== '') {
+          fields.push({ name: String(k), value: String(v) });
+        }
+      }
+    }
+  }
+
+  // Verifica summary no payload (salva como smart field "resumo" tambem)
+  const summary = data.summary || body.summary;
+  if (summary && typeof summary === 'string' && summary.trim()) {
+    fields.push({ name: 'resumo', value: summary.trim() });
+  }
+
+  return fields;
+}
+
+/**
+ * Extrai metadados basicos do evento como smart fields.
+ * Exemplo: nome do cliente a partir do titulo da conversa.
+ */
+function extractMetadataFields(info) {
+  const fields = [];
+
+  // Titulo da conversa geralmente contem o nome do cliente
+  if (info.conversationTitle) {
+    const title = info.conversationTitle.trim();
+    // Evita titulos que sao IDs ou numeros de telefone puros
+    if (title && !title.match(/^[\d+\-\s()]+$/) && !title.match(/^[a-f0-9-]{20,}$/i)) {
+      fields.push({ name: 'cliente', value: title });
+    }
+  }
+
+  // Canal de comunicacao
+  if (info.channelName) {
+    fields.push({ name: 'canal', value: info.channelName });
+  }
+
+  // Tipo de encaminhamento
+  if (info.eventType.startsWith('session.forwarded')) {
+    const forwardType = detectForwardType(info.eventType);
+    if (forwardType) {
+      fields.push({ name: 'tipo_encaminhamento', value: forwardType });
+    }
+    const forwardedTo = info.data.forwardedToName;
+    if (forwardedTo) {
+      fields.push({ name: 'encaminhado_para', value: forwardedTo });
+    }
+  }
+
+  return fields;
+}
+
+/**
+ * Salva smart fields no banco, evitando duplicatas exatas.
+ */
+async function saveSmartFields(conversationId, fields) {
+  for (const { name, value } of fields) {
+    // Verifica se ja existe essa combinacao exata
+    const existing = await sql`
+      SELECT id FROM smart_fields
+      WHERE conversation_id = ${conversationId}
+        AND field_name = ${name}
+        AND field_value = ${value}
+      LIMIT 1
+    `;
+    if (existing.length === 0) {
+      await sql`
+        INSERT INTO smart_fields (conversation_id, field_name, field_value)
+        VALUES (${conversationId}, ${name}, ${value})
+      `;
+      console.log(`[webhook] Smart field saved: ${name}=${value} for ${conversationId}`);
+    }
+  }
 }
 
 async function upsertSession(info, status, raw) {

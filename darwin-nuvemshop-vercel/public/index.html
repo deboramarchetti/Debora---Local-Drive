@@ -210,6 +210,8 @@
       <select id="filterField" onchange="loadSmartFields()">
         <option value="">Todos os campos</option>
       </select>
+      <button class="btn btn-primary" onclick="reprocessSmartFields()" id="reprocessBtn">Reprocessar Eventos</button>
+      <span id="reprocessStatus" style="font-size:12px; color:#6b7280;"></span>
     </div>
     <div class="table-wrapper">
       <table>
@@ -562,6 +564,29 @@
   document.getElementById('modal').addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay')) closeModal();
   });
+
+  // ====== Reprocess smart fields ======
+  async function reprocessSmartFields() {
+    const btn = document.getElementById('reprocessBtn');
+    const status = document.getElementById('reprocessStatus');
+    btn.disabled = true;
+    btn.textContent = 'Reprocessando...';
+    status.textContent = '';
+
+    try {
+      const data = await api('/api/reprocess-smart-fields', { method: 'POST' });
+      status.textContent = `${data.newSmartFields} novos campos extraidos de ${data.conversationsProcessed} conversas`;
+      status.style.color = data.newSmartFields > 0 ? '#16a34a' : '#6b7280';
+      // Recarrega os dados
+      await Promise.all([loadStats(), loadSmartFields()]);
+    } catch (err) {
+      status.textContent = 'Erro: ' + err.message;
+      status.style.color = '#dc2626';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Reprocessar Eventos';
+    }
+  }
 
   // ====== Webhook setup ======
   async function setupWebhook() {
