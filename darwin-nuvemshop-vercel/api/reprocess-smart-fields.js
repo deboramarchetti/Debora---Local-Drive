@@ -112,41 +112,56 @@ export default async function handler(req, res) {
 
 /**
  * Extrai smart fields de um payload de webhook,
- * suportando diferentes estruturas possiveis.
+ * suportando os formatos reais da Darwin:
+ * - Objeto: data.smartFields = { Nome: "X", topic: "Y" }
+ * - Array:  data.smartFields = [{ name: "X", value: "Y" }]
  */
 function extractSmartFieldsFromPayload(body) {
   const fields = [];
   const data = body.data || body;
 
-  // Arrays de smart fields em diferentes caminhos
   const candidates = [
     data.smartFields,
     data.smart_fields,
     data.fields,
+    data.extractedFields,
+    data.extracted_fields,
     body.smartFields,
     body.smart_fields,
   ];
 
-  for (const arr of candidates) {
-    if (Array.isArray(arr) && arr.length > 0) {
-      for (const sf of arr) {
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+
+    if (Array.isArray(candidate)) {
+      for (const sf of candidate) {
         const name = sf.name || sf.key || sf.field_name || sf.fieldName;
         const value = sf.value || sf.field_value || sf.fieldValue;
         if (name !== undefined && value !== undefined && String(value).trim() !== '') {
           fields.push({ name: String(name), value: String(value) });
         }
       }
+    } else if (typeof candidate === 'object') {
+      for (const [k, v] of Object.entries(candidate)) {
+        if (v === null || v === undefined || v === '') continue;
+        const strVal = typeof v === 'boolean' ? (v ? 'Sim' : 'Nao') : String(v);
+        if (strVal.trim() !== '' && strVal !== 'FALSE' && strVal !== 'false') {
+          fields.push({ name: String(k), value: strVal.trim() });
+        }
+      }
     }
   }
 
-  // Objeto chave-valor
-  const objCandidates = [data.extractedFields, data.extracted_fields];
-  for (const obj of objCandidates) {
-    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-      for (const [k, v] of Object.entries(obj)) {
-        if (v !== null && v !== undefined && String(v).trim() !== '') {
-          fields.push({ name: String(k), value: String(v) });
-        }
+  // Source parameters / UTMs
+  const source = data.source || body.source;
+  if (source && typeof source === 'object') {
+    if (source.utmSource) fields.push({ name: 'utm_source', value: String(source.utmSource) });
+    if (source.utmMedium) fields.push({ name: 'utm_medium', value: String(source.utmMedium) });
+    if (source.utmCampaign) fields.push({ name: 'utm_campaign', value: String(source.utmCampaign) });
+    for (const [k, v] of Object.entries(source)) {
+      if (['utmSource', 'utmMedium', 'utmCampaign'].includes(k)) continue;
+      if (v !== null && v !== undefined && String(v).trim() !== '') {
+        fields.push({ name: `source_${k}`, value: String(v) });
       }
     }
   }

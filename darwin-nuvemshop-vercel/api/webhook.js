@@ -101,46 +101,66 @@ function detectForwardType(eventType) {
 
 /**
  * Tenta encontrar smart fields no payload do webhook,
- * suportando diferentes estruturas que a Darwin pode enviar.
+ * suportando os formatos reais que a Darwin envia:
+ * - Objeto chave-valor: data.smartFields = { Nome: "X", topic: "Y" }
+ * - Array de objetos: data.smartFields = [{ name: "X", value: "Y" }]
  */
 function extractSmartFieldsFromPayload(body) {
   const fields = [];
   const data = body.data || body;
 
-  // Busca em multiplos caminhos possiveis
+  // Todos os caminhos possiveis onde smart fields podem estar
   const candidates = [
     data.smartFields,
     data.smart_fields,
     data.fields,
+    data.extractedFields,
+    data.extracted_fields,
     body.smartFields,
     body.smart_fields,
   ];
 
-  for (const arr of candidates) {
-    if (Array.isArray(arr) && arr.length > 0) {
-      for (const sf of arr) {
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+
+    if (Array.isArray(candidate)) {
+      // Formato array: [{ name: "X", value: "Y" }]
+      for (const sf of candidate) {
         const name = sf.name || sf.key || sf.field_name || sf.fieldName;
         const value = sf.value || sf.field_value || sf.fieldValue;
         if (name !== undefined && value !== undefined && String(value).trim() !== '') {
           fields.push({ name: String(name), value: String(value) });
         }
       }
-    }
-  }
-
-  // Tambem verifica se ha smart fields como objeto chave-valor
-  const objCandidates = [data.extractedFields, data.extracted_fields];
-  for (const obj of objCandidates) {
-    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-      for (const [k, v] of Object.entries(obj)) {
-        if (v !== null && v !== undefined && String(v).trim() !== '') {
-          fields.push({ name: String(k), value: String(v) });
+    } else if (typeof candidate === 'object') {
+      // Formato objeto: { Nome: "Glauco", topic: "Sales", sentiment: "Neutral" }
+      for (const [k, v] of Object.entries(candidate)) {
+        if (v === null || v === undefined || v === '') continue;
+        // Converte booleanos para string legivel
+        const strVal = typeof v === 'boolean' ? (v ? 'Sim' : 'Nao') : String(v);
+        if (strVal.trim() !== '' && strVal !== 'FALSE' && strVal !== 'false') {
+          fields.push({ name: String(k), value: strVal.trim() });
         }
       }
     }
   }
 
-  // Verifica summary no payload (salva como smart field "resumo" tambem)
+  // Source parameters / UTMs
+  const source = data.source || body.source;
+  if (source && typeof source === 'object') {
+    if (source.utmSource) fields.push({ name: 'utm_source', value: String(source.utmSource) });
+    if (source.utmMedium) fields.push({ name: 'utm_medium', value: String(source.utmMedium) });
+    if (source.utmCampaign) fields.push({ name: 'utm_campaign', value: String(source.utmCampaign) });
+    // Source parameters customizados
+    for (const [k, v] of Object.entries(source)) {
+      if (['utmSource', 'utmMedium', 'utmCampaign'].includes(k)) continue;
+      if (v !== null && v !== undefined && String(v).trim() !== '') {
+        fields.push({ name: `source_${k}`, value: String(v) });
+      }
+    }
+  }
+
+  // Summary
   const summary = data.summary || body.summary;
   if (summary && typeof summary === 'string' && summary.trim()) {
     fields.push({ name: 'resumo', value: summary.trim() });
