@@ -248,7 +248,7 @@
 
 <div class="tabs" id="tabs">
   <div class="tab active" data-panel="overview">Visao Geral</div>
-  <div class="tab" data-panel="intelligence">Inteligencia</div>
+  <div class="tab" data-panel="insights">Insights</div>
   <div class="tab" data-panel="performance">Performance SDR</div>
   <div class="tab" data-panel="sessions">Conversas <span class="badge" id="badge-sessions">0</span></div>
   <div class="tab" data-panel="smartfields">Smart Fields <span class="badge" id="badge-sf">0</span></div>
@@ -272,6 +272,84 @@
         <h3 style="font-size:14px; margin-bottom:12px;">Smart Fields Capturados</h3>
         <ul class="breakdown" id="sfSummary"></ul>
       </div>
+    </div>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div class="panel" id="panel-insights">
+    <div class="filters">
+      <select id="insightsPeriod" onchange="loadAnalytics()">
+        <option value="7">Ultimos 7 dias</option>
+        <option value="14">Ultimos 14 dias</option>
+        <option value="30" selected>Ultimos 30 dias</option>
+        <option value="90">Ultimos 90 dias</option>
+      </select>
+    </div>
+
+    <!-- 1. Insight Cards -->
+    <div class="insight-grid" id="insightCards"></div>
+
+    <!-- 2. Funil de Qualificacao -->
+    <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
+      <div class="section-header">
+        <h3 style="font-size:15px; font-weight:600;">Funil de Qualificacao</h3>
+        <span style="font-size:12px; color:#9ca3af;">% de conversas que capturaram cada campo</span>
+      </div>
+      <div class="funnel" id="funnelChart"></div>
+    </div>
+
+    <!-- 3+4. Sentiment + help_achieved -->
+    <div class="dist-grid" style="margin-bottom:16px;">
+      <div class="dist-card">
+        <h4>Sentimento dos Leads</h4>
+        <div id="distSentiment"></div>
+      </div>
+      <div class="dist-card">
+        <h4>Efetividade do Bot (help_achieved)</h4>
+        <div id="distHelpAchieved"></div>
+      </div>
+    </div>
+
+    <!-- 5. Faturamento + Topic -->
+    <div class="dist-grid" style="margin-bottom:16px;">
+      <div class="dist-card">
+        <h4>Faturamento Mensal dos Leads</h4>
+        <div id="distFaturamento"></div>
+      </div>
+      <div class="dist-card">
+        <h4>Topicos / Interesse</h4>
+        <div id="distTopic"></div>
+      </div>
+    </div>
+
+    <!-- 6. Sentimento x Desfecho -->
+    <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
+      <div class="section-header">
+        <h3 style="font-size:15px; font-weight:600;">Sentimento x Desfecho</h3>
+        <span style="font-size:12px; color:#9ca3af;">O sentimento influencia o resultado?</span>
+      </div>
+      <div id="crossSentiment"></div>
+    </div>
+
+    <!-- 7. Horario de Pico + Dia da Semana -->
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="table-wrapper" style="padding:20px;">
+        <h3 style="font-size:14px; margin-bottom:12px;">Conversas por Hora do Dia</h3>
+        <div id="hourlyPatternChart" class="bar-chart"></div>
+      </div>
+      <div class="table-wrapper" style="padding:20px;">
+        <h3 style="font-size:14px; margin-bottom:12px;">Conversas por Dia da Semana</h3>
+        <div id="weekdayPatternChart" class="bar-chart"></div>
+      </div>
+    </div>
+
+    <!-- 8. Conversas sem Dados Criticos -->
+    <div class="table-wrapper" style="padding:20px;">
+      <div class="section-header">
+        <h3 style="font-size:15px; font-weight:600;">Oportunidades Perdidas</h3>
+        <span style="font-size:12px; color:#9ca3af;">Conversas sem nome, email, celular ou faturamento</span>
+      </div>
+      <div id="missingCritical"></div>
     </div>
   </div>
 
@@ -451,6 +529,7 @@
         <dt>Stats</dt><dd id="urlStats">-</dd>
         <dt>KPIs</dt><dd id="urlKpis">-</dd>
         <dt>Health</dt><dd id="urlHealth">-</dd>
+        <dt>Analytics</dt><dd id="urlAnalytics">-</dd>
         <dt>Export</dt><dd id="urlExport">-</dd>
       </div>
     </div>
@@ -530,7 +609,7 @@
   async function refreshAll() {
     setStatus('loading', 'Carregando...');
     try {
-      await Promise.all([loadStats(), loadSessions(), loadSmartFields(), loadEvents(), loadKpis(), loadHealth()]);
+      await Promise.all([loadStats(), loadSessions(), loadSmartFields(), loadEvents(), loadKpis(), loadHealth(), loadAnalytics()]);
       setStatus('ok', 'Atualizado ' + new Date().toLocaleTimeString('pt-BR'));
     } catch (err) {
       setStatus('error', 'Erro: ' + err.message);
@@ -633,6 +712,251 @@
         <div class="sub">${cc.value} de ${cc.total}</div>
       </div>`;
     }).join('');
+  }
+
+  // ====== Insights / Analytics ======
+  const DIST_COLORS = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1', '#14b8a6'];
+  const FUNNEL_COLORS = ['#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#10b981', '#059669', '#047857', '#065f46', '#f59e0b', '#d97706'];
+  const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+
+  async function loadAnalytics() {
+    const days = document.getElementById('insightsPeriod').value;
+    let data;
+    try {
+      data = await api('/api/analytics?days=' + days);
+    } catch (e) {
+      console.warn('[insights] failed to load:', e);
+      return;
+    }
+
+    // --- 1. Insight Cards ---
+    const cards = [];
+    // Sentimento predominante
+    const sentDist = data.distributions?.sentiment;
+    if (sentDist && sentDist.length > 0) {
+      const top = sentDist[0];
+      cards.push({
+        label: 'Sentimento Predominante',
+        value: top.value,
+        detail: `${top.pct}% das conversas (${top.count})`,
+        action: top.value === 'Negative' ? 'Investigar: leads chegando insatisfeitos' : '',
+        color: top.value === 'Positive' ? '#16a34a' : top.value === 'Negative' ? '#dc2626' : '#6b7280',
+      });
+    }
+    // help_achieved
+    const helpDist = data.distributions?.help_achieved;
+    if (helpDist && helpDist.length > 0) {
+      const unresponsive = helpDist.find(h => h.value === 'UNRESPONSIVE');
+      const yes = helpDist.find(h => h.value === 'YES');
+      if (unresponsive) {
+        cards.push({
+          label: 'Leads sem Resposta',
+          value: unresponsive.pct + '%',
+          detail: `${unresponsive.count} conversas com UNRESPONSIVE`,
+          action: unresponsive.pct > 40 ? 'Alerta: bot perdendo muitos leads' : '',
+          color: unresponsive.pct > 40 ? '#dc2626' : unresponsive.pct > 20 ? '#f59e0b' : '#16a34a',
+        });
+      }
+      if (yes) {
+        cards.push({
+          label: 'Bot Resolveu',
+          value: yes.pct + '%',
+          detail: `${yes.count} conversas com help = YES`,
+          action: '',
+          color: yes.pct >= 50 ? '#16a34a' : '#f59e0b',
+        });
+      }
+    }
+    // Dados de contato
+    const funnelMap = {};
+    for (const f of data.funnel) funnelMap[f.field] = f;
+    const nomeF = funnelMap['Nome'];
+    const emailF = funnelMap['e-mail'];
+    const celF = funnelMap['Celular'];
+    if (data.totalConversas > 0) {
+      const contatoPct = nomeF ? nomeF.pct : 0;
+      cards.push({
+        label: 'Captura de Nome',
+        value: contatoPct + '%',
+        detail: `${nomeF?.conversas || 0} de ${data.totalConversas} conversas`,
+        action: contatoPct < 50 ? 'Bot nao esta capturando nomes' : '',
+        color: contatoPct >= 70 ? '#16a34a' : contatoPct >= 40 ? '#f59e0b' : '#dc2626',
+      });
+    }
+    // Abandono
+    const abDist = data.distributions?.Abandono;
+    if (abDist) {
+      const sim = abDist.find(a => a.value === 'Sim' || a.value === 'true' || a.value === 'TRUE');
+      if (sim) {
+        cards.push({
+          label: 'Taxa de Abandono',
+          value: sim.pct + '%',
+          detail: `${sim.count} conversas abandonadas`,
+          action: sim.pct > 30 ? 'Critico: muitos leads abandonando' : '',
+          color: sim.pct > 30 ? '#dc2626' : sim.pct > 15 ? '#f59e0b' : '#16a34a',
+        });
+      }
+    }
+
+    document.getElementById('insightCards').innerHTML = cards.length > 0 ? cards.map(c => `
+      <div class="insight-card">
+        <div class="insight-label">${c.label}</div>
+        <div class="insight-value" style="color:${c.color}">${c.value}</div>
+        <div class="insight-detail">${c.detail}</div>
+        ${c.action ? `<div class="insight-action">${c.action}</div>` : ''}
+      </div>
+    `).join('') : '<div class="empty" style="grid-column:1/-1;">Aguardando dados de smart fields...</div>';
+
+    // --- 2. Funil de Qualificacao ---
+    const allFunnel = [...data.funnel, ...data.extraFields].filter(f => f.conversas > 0);
+    const maxFunnel = allFunnel.length > 0 ? Math.max(...allFunnel.map(f => f.conversas)) : 1;
+    document.getElementById('funnelChart').innerHTML = allFunnel.length > 0 ? allFunnel.map((f, i) => {
+      const pct = Math.max(3, Math.round((f.conversas / maxFunnel) * 100));
+      const color = FUNNEL_COLORS[i % FUNNEL_COLORS.length];
+      return `<div class="funnel-row">
+        <span class="funnel-label" title="${f.field}">${f.field}</span>
+        <div class="funnel-track">
+          <div class="funnel-fill" style="width:${pct}%; background:${color};">
+            <span>${f.conversas}</span>
+          </div>
+        </div>
+        <span class="funnel-pct">${f.pct}%</span>
+      </div>`;
+    }).join('') : '<div class="empty">Sem dados de funil</div>';
+
+    // --- 3. Distribuicoes ---
+    renderDistribution('distSentiment', data.distributions?.sentiment, ['#16a34a', '#6b7280', '#dc2626', '#f59e0b']);
+    renderDistribution('distHelpAchieved', data.distributions?.help_achieved, ['#16a34a', '#dc2626', '#6b7280', '#f59e0b']);
+    renderDistribution('distFaturamento', data.distributions?.['Faturamento mensal'], DIST_COLORS);
+
+    // Topic + Interest combined
+    const topicData = data.distributions?.topic || [];
+    const interestData = data.distributions?.interest || [];
+    const combined = [...topicData.map(t => ({...t, src: 'topic'})), ...interestData.map(t => ({...t, src: 'interest'}))];
+    combined.sort((a, b) => b.count - a.count);
+    renderDistribution('distTopic', combined.length > 0 ? combined.slice(0, 10) : null, DIST_COLORS);
+
+    // --- 6. Sentimento x Desfecho (cross table) ---
+    renderCrossTable('crossSentiment', data.sentimentOutcome);
+
+    // --- 7. Horario de Pico ---
+    const hourly = data.hourlyPattern || [];
+    const maxH = Math.max(...hourly.map(h => h.total), 1);
+    document.getElementById('hourlyPatternChart').innerHTML = hourly.length > 0 ? hourly.map(h => {
+      const pct = Math.round((h.total / maxH) * 100);
+      const hr = String(h.hour).padStart(2, '0') + ':00';
+      const qPct = h.total > 0 ? Math.round((h.qualified / h.total) * 100) : 0;
+      return `<div class="bar-row">
+        <span class="bar-label">${hr}</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%; background: linear-gradient(90deg, #7c3aed ${100-qPct}%, #16a34a 100%);"><span>${h.total}${h.qualified > 0 ? ' ('+h.qualified+'q)' : ''}</span></div>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty">Sem dados</div>';
+
+    // Dia da semana
+    const weekly = data.weekdayPattern || [];
+    const maxW = Math.max(...weekly.map(w => w.total), 1);
+    document.getElementById('weekdayPatternChart').innerHTML = weekly.length > 0 ? weekly.map(w => {
+      const pct = Math.round((w.total / maxW) * 100);
+      const qPct = w.total > 0 ? Math.round((w.qualified / w.total) * 100) : 0;
+      return `<div class="bar-row">
+        <span class="bar-label">${WEEKDAYS[w.dow] || w.dow}</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%; background: linear-gradient(90deg, #7c3aed ${100-qPct}%, #16a34a 100%);"><span>${w.total}${w.qualified > 0 ? ' ('+w.qualified+'q)' : ''}</span></div>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty">Sem dados</div>';
+
+    // --- 8. Conversas sem Dados Criticos ---
+    const missing = data.missingCritical || [];
+    if (missing.length > 0) {
+      document.getElementById('missingCritical').innerHTML = `
+        <div class="missing-alert">
+          <h4>${missing.length} conversas sem dados criticos de contato</h4>
+          <p>Essas conversas nao capturaram Nome, email, celular ou faturamento. Investigue o fluxo do bot para esses leads.</p>
+        </div>
+        <table>
+          <thead><tr><th>Lead</th><th>Status</th><th>Forward</th><th>Data</th><th>Acao</th></tr></thead>
+          <tbody>${missing.map(m => `<tr>
+            <td>${m.conversation_title || m.conversation_id?.substring(0, 12) + '...' || '-'}</td>
+            <td><span class="tag tag-${m.status || 'open'}">${statusLabel(m.status)}</span></td>
+            <td>${m.forward_type || '-'}</td>
+            <td>${fmtDate(m.created_at)}</td>
+            <td><button class="btn btn-outline btn-sm" onclick="openSessionDetail('${m.conversation_id}')">Ver</button></td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+    } else {
+      document.getElementById('missingCritical').innerHTML = '<div class="empty" style="padding:20px; color:#16a34a;">Todas as conversas capturaram dados criticos!</div>';
+    }
+  }
+
+  // Render distribution bars
+  function renderDistribution(elementId, data, colors) {
+    const el = document.getElementById(elementId);
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div class="empty" style="padding:16px;">Sem dados</div>';
+      return;
+    }
+    const maxCount = Math.max(...data.map(d => d.count), 1);
+    el.innerHTML = data.map((d, i) => {
+      const pct = Math.max(3, Math.round((d.count / maxCount) * 100));
+      const color = colors[i % colors.length];
+      const label = d.src ? `[${d.src}] ${d.value}` : d.value;
+      return `<div class="dist-bar">
+        <span class="label" title="${label}">${label}</span>
+        <div class="track"><div class="fill" style="width:${pct}%; background:${color};"><span>${d.count}</span></div></div>
+        <span class="count">${d.pct}%</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Render cross-table (sentiment x outcome)
+  function renderCrossTable(elementId, data) {
+    const el = document.getElementById(elementId);
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div class="empty" style="padding:16px;">Sem dados cruzados</div>';
+      return;
+    }
+
+    // Build pivot: sentiment -> outcome -> count
+    const pivot = {};
+    const outcomes = new Set();
+    for (const row of data) {
+      const sentiment = row.sentiment;
+      const outcome = row.forward_type
+        ? `${statusLabel(row.status)} (${row.forward_type})`
+        : statusLabel(row.status);
+      outcomes.add(outcome);
+      if (!pivot[sentiment]) pivot[sentiment] = {};
+      pivot[sentiment][outcome] = (pivot[sentiment][outcome] || 0) + row.count;
+    }
+
+    const outArr = [...outcomes];
+    const sentiments = Object.keys(pivot);
+
+    // Find max for highlighting
+    let maxVal = 0;
+    for (const s of sentiments) for (const o of outArr) maxVal = Math.max(maxVal, pivot[s]?.[o] || 0);
+
+    let html = '<table class="cross-table"><thead><tr><th></th>';
+    for (const o of outArr) html += `<th>${o}</th>`;
+    html += '<th>Total</th></tr></thead><tbody>';
+
+    for (const s of sentiments) {
+      let rowTotal = 0;
+      html += `<tr><td class="row-label">${s}</td>`;
+      for (const o of outArr) {
+        const val = pivot[s]?.[o] || 0;
+        rowTotal += val;
+        const isMax = val === maxVal && val > 0;
+        html += `<td class="${isMax ? 'highlight' : ''}">${val || '-'}</td>`;
+      }
+      html += `<td style="font-weight:600;">${rowTotal}</td></tr>`;
+    }
+
+    html += '</tbody></table>';
+    el.innerHTML = html;
   }
 
   // ====== Health / Saude ======
@@ -917,6 +1241,7 @@
     document.getElementById('urlStats').textContent = base + '/api/stats';
     document.getElementById('urlKpis').textContent = base + '/api/kpis';
     document.getElementById('urlHealth').textContent = base + '/api/health';
+    document.getElementById('urlAnalytics').textContent = base + '/api/analytics';
     document.getElementById('urlExport').textContent = base + '/api/export?type=sessions';
   }
 
