@@ -1,5 +1,14 @@
 import { sql } from '@vercel/postgres';
 
+// Mapeia DATABASE_URL → POSTGRES_URL se necessário
+// (o @vercel/postgres espera POSTGRES_URL)
+if (!process.env.POSTGRES_URL && process.env.DATABASE_URL) {
+  process.env.POSTGRES_URL = process.env.DATABASE_URL;
+}
+if (!process.env.POSTGRES_URL_NON_POOLING && process.env.DATABASE_URL_UNPOOLED) {
+  process.env.POSTGRES_URL_NON_POOLING = process.env.DATABASE_URL_UNPOOLED;
+}
+
 /**
  * Garante que as tabelas existem.
  * Chamado automaticamente nas rotas — se as tabelas já existem, não faz nada.
