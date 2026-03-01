@@ -723,7 +723,7 @@
     const days = document.getElementById('insightsPeriod').value;
     let data;
     try {
-      data = await api('/api/analytics?days=' + days);
+      data = await api('/api/kpis?view=insights&days=' + days);
     } catch (e) {
       console.warn('[insights] failed to load:', e);
       return;
@@ -1245,7 +1245,7 @@
     document.getElementById('urlStats').textContent = base + '/api/stats';
     document.getElementById('urlKpis').textContent = base + '/api/kpis';
     document.getElementById('urlHealth').textContent = base + '/api/health';
-    document.getElementById('urlAnalytics').textContent = base + '/api/analytics';
+    document.getElementById('urlAnalytics').textContent = base + '/api/kpis?view=insights';
     document.getElementById('urlExport').textContent = base + '/api/export?type=sessions';
   }
 
