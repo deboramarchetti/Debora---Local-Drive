@@ -70,6 +70,21 @@ export async function ensureTables() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id              SERIAL PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      audit_type      TEXT NOT NULL,
+      bot_rating      INT,
+      issue_category  TEXT,
+      notes           TEXT,
+      prompt_action   TEXT,
+      audited_by      TEXT,
+      audited_at      TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_audit_conv ON audit_log(conversation_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_events_conv ON events(conversation_id)`;

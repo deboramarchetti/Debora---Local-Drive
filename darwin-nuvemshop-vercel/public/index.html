@@ -284,30 +284,34 @@
         <option value="30">Ultimos 30 dias</option>
         <option value="90">Ultimos 90 dias</option>
       </select>
+      <span style="font-size:12px; color:#9ca3af; margin-left:8px;">Periodo para graficos. QA sempre ultimos 3 dias.</span>
     </div>
 
-    <!-- 1. Insight Cards -->
+    <!-- 1. Recommendation + Progress Bar -->
+    <div id="auditRecommendation" style="margin-bottom:16px;"></div>
+
+    <!-- 2. Insight Cards -->
     <div class="insight-grid" id="insightCards"></div>
 
-    <!-- 2. QA: Conversas para Auditar (3 dias) -->
+    <!-- 3. QA Criticos -->
     <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
       <div class="section-header">
-        <h3 style="font-size:15px; font-weight:600;">Auditar: Ultimos 3 dias</h3>
-        <span style="font-size:12px; color:#9ca3af;">Top 10 conversas prioritarias para revisao de QA do bot</span>
+        <h3 style="font-size:15px; font-weight:600;">QA: Casos Criticos (3 dias)</h3>
+        <span style="font-size:12px; color:#9ca3af;">Conversas com problemas identificados — prioridade maxima</span>
       </div>
-      <div id="audit3d"></div>
+      <div id="auditCritical"></div>
     </div>
 
-    <!-- 3. QA: Conversas para Auditar (7 dias) -->
+    <!-- 4. QA Amostra Aleatoria -->
     <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
       <div class="section-header">
-        <h3 style="font-size:15px; font-weight:600;">Auditar: Ultimos 7 dias</h3>
-        <span style="font-size:12px; color:#9ca3af;">Top 10 conversas prioritarias para revisao de QA do bot</span>
+        <h3 style="font-size:15px; font-weight:600;">QA: Amostra Aleatoria (3 dias)</h3>
+        <span style="font-size:12px; color:#9ca3af;">Amostra sem vies para avaliar qualidade geral do bot</span>
       </div>
-      <div id="audit7d"></div>
+      <div id="auditRandom"></div>
     </div>
 
-    <!-- 4+5. Sentiment + help_achieved -->
+    <!-- 5+6. Sentiment + help_achieved -->
     <div class="dist-grid" style="margin-bottom:16px;">
       <div class="dist-card">
         <h4>Sentimento dos Leads</h4>
@@ -319,7 +323,7 @@
       </div>
     </div>
 
-    <!-- 6. Faturamento + Topic -->
+    <!-- 7. Faturamento + Topic -->
     <div class="dist-grid" style="margin-bottom:16px;">
       <div class="dist-card">
         <h4>Faturamento Mensal dos Leads</h4>
@@ -331,7 +335,7 @@
       </div>
     </div>
 
-    <!-- 7. Sentimento x Desfecho -->
+    <!-- 8. Sentimento x Desfecho -->
     <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
       <div class="section-header">
         <h3 style="font-size:15px; font-weight:600;">Sentimento x Desfecho</h3>
@@ -340,7 +344,7 @@
       <div id="crossSentiment"></div>
     </div>
 
-    <!-- 8. Horario de Pico + Dia da Semana -->
+    <!-- 9. Horario de Pico + Dia da Semana -->
     <div class="grid-2" style="margin-bottom:16px;">
       <div class="table-wrapper" style="padding:20px;">
         <h3 style="font-size:14px; margin-bottom:12px;">Conversas por Hora do Dia</h3>
@@ -350,6 +354,62 @@
         <h3 style="font-size:14px; margin-bottom:12px;">Conversas por Dia da Semana</h3>
         <div id="weekdayPatternChart" class="bar-chart"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Audit modal -->
+  <div class="modal-overlay" id="auditModal">
+    <div class="modal" style="max-width:500px;">
+      <button class="close-btn" onclick="closeAuditModal()">&times;</button>
+      <h2 style="font-size:16px; margin-bottom:16px;">Auditar Conversa</h2>
+      <input type="hidden" id="auditConvId">
+      <input type="hidden" id="auditType">
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Nota do Bot (1-5)</label>
+        <div style="display:flex; gap:8px;" id="auditRatingBtns">
+          <button class="btn btn-outline" onclick="setAuditRating(1)" data-r="1" style="width:40px;">1</button>
+          <button class="btn btn-outline" onclick="setAuditRating(2)" data-r="2" style="width:40px;">2</button>
+          <button class="btn btn-outline" onclick="setAuditRating(3)" data-r="3" style="width:40px;">3</button>
+          <button class="btn btn-outline" onclick="setAuditRating(4)" data-r="4" style="width:40px;">4</button>
+          <button class="btn btn-outline" onclick="setAuditRating(5)" data-r="5" style="width:40px;">5</button>
+        </div>
+        <span style="font-size:11px; color:#9ca3af;">1=pessimo, 3=ok, 5=excelente</span>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Categoria do Problema</label>
+        <select id="auditCategory" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;">
+          <option value="">Sem problema / N/A</option>
+          <option value="tom">Tom da conversa</option>
+          <option value="precisao">Precisao das respostas</option>
+          <option value="fluxo">Fluxo da conversa</option>
+          <option value="captura_dados">Captura de dados</option>
+          <option value="escalacao">Escalacao incorreta</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Observacoes</label>
+        <textarea id="auditNotes" rows="2" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; resize:vertical;" placeholder="O que aconteceu nessa conversa..."></textarea>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Acao no Prompt</label>
+        <textarea id="auditPromptAction" rows="2" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; resize:vertical;" placeholder="O que mudar no prompt para evitar isso..."></textarea>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Seu nome</label>
+        <input id="auditBy" type="text" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;" placeholder="Quem esta auditando">
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary" onclick="submitAudit()" id="auditSubmitBtn" style="flex:1;">Salvar Auditoria</button>
+        <button class="btn btn-outline" onclick="closeAuditModal()">Cancelar</button>
+      </div>
+      <div id="auditSubmitStatus" style="font-size:12px; margin-top:8px;"></div>
     </div>
   </div>
 
@@ -730,66 +790,52 @@
     try { renderInsights(data); } catch (e) { console.error('[insights render]', e); }
   }
 
-  function renderInsights(data) {
+  let currentAuditRating = 0;
 
-    // --- 1. Insight Cards ---
+  function renderInsights(data) {
+    const a = data.audit || {};
+
+    // --- 1. Recommendation + Progress ---
+    const remaining = a.recommendedTotal - a.auditedCount;
+    const pctDone = a.pctComplete || 0;
+    const barColor = pctDone >= 80 ? '#16a34a' : pctDone >= 40 ? '#f59e0b' : '#dc2626';
+    document.getElementById('auditRecommendation').innerHTML = a.totalConversas3d > 0 ? `
+      <div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); border-left:4px solid ${barColor};">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div>
+            <span style="font-size:20px; font-weight:700; color:#1a1a2e;">Auditar ${a.recommendedTotal} conversas</span>
+            <span style="font-size:13px; color:#6b7280; margin-left:8px;">(${a.criticalCount} criticas + ${a.randomCount} aleatorias) de ${a.totalConversas3d} nos ultimos 3 dias</span>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:24px; font-weight:700; color:${barColor};">${a.auditedCount}/${a.recommendedTotal}</span>
+            <div style="font-size:11px; color:#9ca3af;">${remaining > 0 ? remaining + ' restantes' : 'Completo!'}</div>
+          </div>
+        </div>
+        <div style="background:#f3f4f6; border-radius:6px; height:12px; overflow:hidden;">
+          <div style="background:${barColor}; height:100%; width:${pctDone}%; border-radius:6px; transition:width .3s;"></div>
+        </div>
+        <div style="font-size:11px; color:#9ca3af; margin-top:4px;">${pctDone}% concluido — meta: 60%+ do volume total auditado</div>
+      </div>
+    ` : '<div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); text-align:center; color:#9ca3af;">Nenhuma conversa nos ultimos 3 dias</div>';
+
+    // --- 2. Insight Cards ---
     const cards = [];
     const sentDist = data.distributions?.sentiment;
     if (sentDist && sentDist.length > 0) {
       const top = sentDist[0];
-      cards.push({
-        label: 'Sentimento Predominante',
-        value: top.value,
-        detail: `${top.pct}% das conversas (${top.count})`,
-        action: top.value === 'Negative' ? 'Investigar: leads chegando insatisfeitos' : '',
-        color: top.value === 'Positive' ? '#16a34a' : top.value === 'Negative' ? '#dc2626' : '#6b7280',
-      });
+      cards.push({ label: 'Sentimento Predominante', value: top.value, detail: `${top.pct}% (${top.count})`, action: top.value === 'Negative' ? 'Leads insatisfeitos' : '', color: top.value === 'Positive' ? '#16a34a' : top.value === 'Negative' ? '#dc2626' : '#6b7280' });
     }
     const helpDist = data.distributions?.help_achieved;
-    if (helpDist && helpDist.length > 0) {
-      const unresponsive = helpDist.find(h => h.value === 'UNRESPONSIVE');
-      const yes = helpDist.find(h => h.value === 'YES');
-      if (unresponsive) {
-        cards.push({
-          label: 'Leads sem Resposta',
-          value: unresponsive.pct + '%',
-          detail: `${unresponsive.count} conversas UNRESPONSIVE`,
-          action: unresponsive.pct > 40 ? 'Alerta: bot perdendo muitos leads' : '',
-          color: unresponsive.pct > 40 ? '#dc2626' : unresponsive.pct > 20 ? '#f59e0b' : '#16a34a',
-        });
-      }
-      if (yes) {
-        cards.push({
-          label: 'Bot Resolveu',
-          value: yes.pct + '%',
-          detail: `${yes.count} conversas com help = YES`,
-          action: '',
-          color: yes.pct >= 50 ? '#16a34a' : '#f59e0b',
-        });
-      }
+    if (helpDist) {
+      const unr = helpDist.find(h => h.value === 'UNRESPONSIVE');
+      if (unr) cards.push({ label: 'Sem Resposta', value: unr.pct + '%', detail: `${unr.count} UNRESPONSIVE`, action: unr.pct > 40 ? 'Bot perdendo leads' : '', color: unr.pct > 40 ? '#dc2626' : unr.pct > 20 ? '#f59e0b' : '#16a34a' });
     }
     const abDist = data.distributions?.Abandono;
     if (abDist) {
-      const sim = abDist.find(a => a.value === 'Sim' || a.value === 'true' || a.value === 'TRUE');
-      if (sim) {
-        cards.push({
-          label: 'Taxa de Abandono',
-          value: sim.pct + '%',
-          detail: `${sim.count} conversas abandonadas`,
-          action: sim.pct > 30 ? 'Critico: muitos leads abandonando' : '',
-          color: sim.pct > 30 ? '#dc2626' : sim.pct > 15 ? '#f59e0b' : '#16a34a',
-        });
-      }
+      const sim = abDist.find(a => a.value === 'Sim' || a.value === 'true');
+      if (sim) cards.push({ label: 'Abandono', value: sim.pct + '%', detail: `${sim.count} abandonos`, action: sim.pct > 30 ? 'Critico' : '', color: sim.pct > 30 ? '#dc2626' : '#f59e0b' });
     }
-    if (data.totalConversas > 0) {
-      cards.push({
-        label: 'Total Conversas',
-        value: data.totalConversas,
-        detail: 'no periodo selecionado',
-        action: '',
-        color: '#7c3aed',
-      });
-    }
+    if (data.totalConversas > 0) cards.push({ label: 'Total Conversas', value: data.totalConversas, detail: 'periodo selecionado', action: '', color: '#7c3aed' });
 
     document.getElementById('insightCards').innerHTML = cards.length > 0 ? cards.map(c => `
       <div class="insight-card">
@@ -798,82 +844,132 @@
         <div class="insight-detail">${c.detail}</div>
         ${c.action ? `<div class="insight-action">${c.action}</div>` : ''}
       </div>
-    `).join('') : '<div class="empty" style="grid-column:1/-1;">Aguardando dados de smart fields...</div>';
+    `).join('') : '';
 
-    // --- 2. Tabelas de Auditoria QA ---
-    renderAuditTable('audit3d', data.audit3d, 'Ultimos 3 dias');
-    renderAuditTable('audit7d', data.audit7d, 'Ultimos 7 dias');
+    // --- 3. Audit Tables ---
+    renderAuditTable('auditCritical', a.critical, 'critical');
+    renderAuditTable('auditRandom', a.random, 'random');
 
-    // --- 3. Distribuicoes ---
+    // --- 4. Distribuicoes ---
     renderDistribution('distSentiment', data.distributions?.sentiment, ['#16a34a', '#6b7280', '#dc2626', '#f59e0b']);
     renderDistribution('distHelpAchieved', data.distributions?.help_achieved, ['#16a34a', '#dc2626', '#6b7280', '#f59e0b']);
     renderDistribution('distFaturamento', data.distributions?.['Faturamento mensal'], DIST_COLORS);
-
     const topicData = data.distributions?.topic || [];
     const interestData = data.distributions?.interest || [];
     const combined = [...topicData.map(t => ({...t, src: 'topic'})), ...interestData.map(t => ({...t, src: 'interest'}))];
     combined.sort((a, b) => b.count - a.count);
     renderDistribution('distTopic', combined.length > 0 ? combined.slice(0, 10) : null, DIST_COLORS);
 
-    // --- 4. Sentimento x Desfecho ---
+    // --- 5. Cross table ---
     renderCrossTable('crossSentiment', data.sentimentOutcome);
 
-    // --- 5. Horario de Pico ---
+    // --- 6. Hourly + Weekly ---
     const hourly = data.hourlyPattern || [];
     const maxH = Math.max(...hourly.map(h => h.total), 1);
     document.getElementById('hourlyPatternChart').innerHTML = hourly.length > 0 ? hourly.map(h => {
       const pct = Math.round((h.total / maxH) * 100);
       const hr = String(h.hour).padStart(2, '0') + ':00';
-      const qPct = h.total > 0 ? Math.round((h.qualified / h.total) * 100) : 0;
-      return `<div class="bar-row">
-        <span class="bar-label">${hr}</span>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${pct}%; background: linear-gradient(90deg, #7c3aed ${100-qPct}%, #16a34a 100%);"><span>${h.total}${h.qualified > 0 ? ' ('+h.qualified+'q)' : ''}</span></div>
-        </div>
-      </div>`;
+      return `<div class="bar-row"><span class="bar-label">${hr}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;"><span>${h.total}</span></div></div></div>`;
     }).join('') : '<div class="empty">Sem dados</div>';
 
     const weekly = data.weekdayPattern || [];
     const maxW = Math.max(...weekly.map(w => w.total), 1);
     document.getElementById('weekdayPatternChart').innerHTML = weekly.length > 0 ? weekly.map(w => {
       const pct = Math.round((w.total / maxW) * 100);
-      const qPct = w.total > 0 ? Math.round((w.qualified / w.total) * 100) : 0;
-      return `<div class="bar-row">
-        <span class="bar-label">${WEEKDAYS[w.dow] || w.dow}</span>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${pct}%; background: linear-gradient(90deg, #7c3aed ${100-qPct}%, #16a34a 100%);"><span>${w.total}${w.qualified > 0 ? ' ('+w.qualified+'q)' : ''}</span></div>
-        </div>
-      </div>`;
+      return `<div class="bar-row"><span class="bar-label">${WEEKDAYS[w.dow] || w.dow}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;"><span>${w.total}</span></div></div></div>`;
     }).join('') : '<div class="empty">Sem dados</div>';
   }
 
-  // Render audit table
-  function renderAuditTable(elementId, items, label) {
+  function renderAuditTable(elementId, items, auditType) {
     const el = document.getElementById(elementId);
     if (!items || items.length === 0) {
-      el.innerHTML = '<div class="empty" style="padding:20px;">Nenhuma conversa prioritaria para auditoria — bom sinal!</div>';
+      el.innerHTML = '<div class="empty" style="padding:20px;">Nenhuma conversa nesta categoria</div>';
       return;
     }
     const scoreColor = (s) => s >= 40 ? '#dc2626' : s >= 20 ? '#f59e0b' : '#6b7280';
     const scoreBg = (s) => s >= 40 ? '#fee2e2' : s >= 20 ? '#fef3c7' : '#f3f4f6';
     el.innerHTML = `<table>
       <thead><tr>
-        <th style="width:40px;">Prio</th>
+        <th style="width:36px;"></th>
         <th>Lead</th>
         <th>Status</th>
-        <th>Por que auditar</th>
+        <th>Razao</th>
         <th>Data</th>
-        <th></th>
+        <th style="width:120px;"></th>
       </tr></thead>
-      <tbody>${items.map((c, i) => `<tr>
-        <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:${scoreBg(c.score)}; color:${scoreColor(c.score)};">#${i + 1}</span></td>
-        <td><strong>${c.conversation_title || c.conversation_id?.substring(0, 12) + '...' || '-'}</strong></td>
-        <td><span class="tag tag-${c.status || 'open'}">${statusLabel(c.status)}</span>${c.forward_type ? ' <span class="tag tag-forwarded">' + c.forward_type + '</span>' : ''}</td>
-        <td style="font-size:12px; color:#374151; max-width:300px;">${c.reasons.join(' / ')}</td>
-        <td style="white-space:nowrap;">${fmtDate(c.created_at)}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="openSessionDetail('${c.conversation_id}')">Ver</button></td>
-      </tr>`).join('')}</tbody>
+      <tbody>${items.map((c, i) => {
+        const done = !!c.audited;
+        const rowStyle = done ? 'background:#f0fdf4;' : '';
+        const ratingStars = c.audited ? '★'.repeat(c.audited.bot_rating || 0) + '☆'.repeat(5 - (c.audited.bot_rating || 0)) : '';
+        return `<tr style="${rowStyle}">
+          <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:${done ? '#dcfce7' : scoreBg(c.score)}; color:${done ? '#16a34a' : scoreColor(c.score)};">${done ? '✓' : '#' + (i + 1)}</span></td>
+          <td><strong>${c.conversation_title || c.conversation_id?.substring(0, 12) + '...' || '-'}</strong>${done ? '<br><span style="font-size:11px; color:#16a34a;">' + ratingStars + ' — ' + (c.audited.issue_category || 'ok') + '</span>' : ''}</td>
+          <td><span class="tag tag-${c.status || 'open'}">${statusLabel(c.status)}</span>${c.forward_type ? ' <span class="tag tag-forwarded">' + c.forward_type + '</span>' : ''}</td>
+          <td style="font-size:12px; color:#374151; max-width:280px;">${c.reasons.join(' / ')}</td>
+          <td style="white-space:nowrap; font-size:12px;">${fmtDate(c.created_at)}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-outline btn-sm" onclick="openSessionDetail('${c.conversation_id}')" style="margin-right:4px;">Ver</button>
+            ${done ? '' : `<button class="btn btn-primary btn-sm" onclick="openAuditModal('${c.conversation_id}', '${auditType}')">Auditar</button>`}
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
     </table>`;
+  }
+
+  // Audit modal
+  function openAuditModal(convId, auditType) {
+    currentAuditRating = 0;
+    document.getElementById('auditConvId').value = convId;
+    document.getElementById('auditType').value = auditType;
+    document.getElementById('auditCategory').value = '';
+    document.getElementById('auditNotes').value = '';
+    document.getElementById('auditPromptAction').value = '';
+    document.getElementById('auditBy').value = localStorage.getItem('audit_user') || '';
+    document.getElementById('auditSubmitStatus').textContent = '';
+    document.querySelectorAll('#auditRatingBtns button').forEach(b => { b.style.background = ''; b.style.color = ''; });
+    document.getElementById('auditModal').classList.add('active');
+  }
+  function closeAuditModal() { document.getElementById('auditModal').classList.remove('active'); }
+  document.getElementById('auditModal')?.addEventListener('click', (e) => { if (e.target.classList.contains('modal-overlay')) closeAuditModal(); });
+
+  function setAuditRating(r) {
+    currentAuditRating = r;
+    document.querySelectorAll('#auditRatingBtns button').forEach(b => {
+      const br = parseInt(b.dataset.r);
+      if (br <= r) { b.style.background = '#7c3aed'; b.style.color = '#fff'; }
+      else { b.style.background = ''; b.style.color = ''; }
+    });
+  }
+
+  async function submitAudit() {
+    const convId = document.getElementById('auditConvId').value;
+    const auditType = document.getElementById('auditType').value;
+    const auditor = document.getElementById('auditBy').value.trim();
+    if (!currentAuditRating) { document.getElementById('auditSubmitStatus').textContent = 'Selecione uma nota'; return; }
+    if (!auditor) { document.getElementById('auditSubmitStatus').textContent = 'Informe seu nome'; return; }
+    localStorage.setItem('audit_user', auditor);
+    const btn = document.getElementById('auditSubmitBtn');
+    btn.disabled = true; btn.textContent = 'Salvando...';
+    try {
+      await api('/api/kpis?action=audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversation_id: convId,
+          audit_type: auditType,
+          bot_rating: currentAuditRating,
+          issue_category: document.getElementById('auditCategory').value || null,
+          notes: document.getElementById('auditNotes').value || null,
+          prompt_action: document.getElementById('auditPromptAction').value || null,
+          audited_by: auditor,
+        }),
+      });
+      closeAuditModal();
+      await loadAnalytics();
+    } catch (e) {
+      document.getElementById('auditSubmitStatus').textContent = 'Erro: ' + e.message;
+      document.getElementById('auditSubmitStatus').style.color = '#dc2626';
+    } finally { btn.disabled = false; btn.textContent = 'Salvar Auditoria'; }
   }
 
   // Render distribution bars

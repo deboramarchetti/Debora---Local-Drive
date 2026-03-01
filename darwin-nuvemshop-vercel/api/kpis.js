@@ -3,17 +3,23 @@ import { checkAuth, unauthorized } from './_lib/auth.js';
 
 /**
  * GET /api/kpis
+ *   ?view=insights  -> analytics + QA audit
+ *   ?view=          -> KPIs de SDR (default)
+ *   ?days=30        -> periodo
  *
- * ?view=insights  -> retorna analytics/insights de negocio
- * ?view=          -> retorna KPIs de SDR (default)
- * ?days=30        -> periodo de analise
+ * POST /api/kpis?action=audit  -> salvar resultado de auditoria
  */
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
   if (!checkAuth(req)) return unauthorized(res);
 
   try {
     await ensureTables();
+
+    if (req.method === 'POST' && req.query.action === 'audit') {
+      return handleSaveAudit(req, res);
+    }
+
+    if (req.method !== 'GET') return res.status(405).json({ error: 'GET or POST only' });
 
     const days = Math.min(90, Math.max(1, parseInt(req.query.days) || 30));
 
@@ -26,6 +32,31 @@ export default async function handler(req, res) {
     console.error('[kpis]', err);
     return res.status(500).json({ error: err.message });
   }
+}
+
+// ===== Salvar auditoria =====
+async function handleSaveAudit(req, res) {
+  const { conversation_id, audit_type, bot_rating, issue_category, notes, prompt_action, audited_by } = req.body || {};
+  if (!conversation_id || !audit_type) {
+    return res.status(400).json({ error: 'conversation_id e audit_type obrigatorios' });
+  }
+
+  await sql`
+    INSERT INTO audit_log (conversation_id, audit_type, bot_rating, issue_category, notes, prompt_action, audited_by)
+    VALUES (${conversation_id}, ${audit_type}, ${bot_rating || null}, ${issue_category || null}, ${notes || null}, ${prompt_action || null}, ${audited_by || null})
+  `;
+
+  return res.status(200).json({ ok: true });
+}
+
+// Calculo de amostra: 60% minimo, com curva forte
+function calcSampleSize(total) {
+  if (total <= 5) return total; // auditar tudo
+  if (total <= 15) return Math.ceil(total * 0.80); // 80% para volumes baixos
+  if (total <= 50) return Math.ceil(total * 0.65); // 65%
+  if (total <= 100) return Math.ceil(total * 0.60); // 60%
+  // Para volumes altos, 60% com cap pratico de 80
+  return Math.min(80, Math.ceil(total * 0.60));
 }
 
 // ===== KPIs de SDR (view default) =====
@@ -106,17 +137,26 @@ async function handleKpis(req, res, days) {
 }
 
 // ===== Insights de negocio (view=insights) =====
+// Periodo fixo: 3 dias para QA, days para distribuicoes/graficos
 async function handleInsights(req, res, days) {
+  const auditDays = 3;
+
   const [
     totalResult,
+    totalAuditResult,
     allDistributions,
     sentimentOutcome,
     hourlyPattern,
     weekdayPattern,
     auditCandidatesRaw,
+    existingAudits,
   ] = await Promise.all([
     sql`SELECT COUNT(*)::int as total FROM sessions
         WHERE created_at > NOW() - INTERVAL '1 day' * ${days}`,
+
+    // Total conversas nos ultimos 3 dias (para calculo de amostra)
+    sql`SELECT COUNT(*)::int as total FROM sessions
+        WHERE created_at > NOW() - INTERVAL '3 days'`,
 
     sql`SELECT sf.field_name, sf.field_value, COUNT(*)::int as count
         FROM smart_fields sf
@@ -150,7 +190,7 @@ async function handleInsights(req, res, days) {
         GROUP BY EXTRACT(DOW FROM created_at)
         ORDER BY dow`,
 
-    // Conversas candidatas a auditoria: busca sessoes recentes com seus smart fields
+    // Conversas dos ultimos 3 dias com smart fields
     sql`SELECT
           s.conversation_id,
           s.conversation_title,
@@ -164,14 +204,26 @@ async function handleInsights(req, res, days) {
             FILTER (WHERE sf.field_name IS NOT NULL), '[]') as fields
         FROM sessions s
         LEFT JOIN smart_fields sf ON sf.conversation_id = s.conversation_id
-        WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
+        WHERE s.created_at > NOW() - INTERVAL '3 days'
         GROUP BY s.id, s.conversation_id, s.conversation_title, s.status,
                  s.forward_type, s.forwarded_to, s.summary, s.created_at, s.closed_at
         ORDER BY s.created_at DESC
-        LIMIT 100`,
+        LIMIT 200`,
+
+    // Auditorias ja realizadas nos ultimos 3 dias
+    sql`SELECT conversation_id, audit_type, bot_rating, issue_category, notes, prompt_action, audited_by, audited_at
+        FROM audit_log
+        WHERE audited_at > NOW() - INTERVAL '3 days'`,
   ]);
 
   const totalConversas = totalResult[0]?.total || 0;
+  const totalAudit3d = totalAuditResult[0]?.total || 0;
+
+  // Mapa de auditorias ja feitas
+  const auditedMap = {};
+  for (const a of existingAudits) {
+    auditedMap[a.conversation_id] = a;
+  }
 
   // Processar distribuicoes
   const distributions = {};
@@ -189,9 +241,9 @@ async function handleInsights(req, res, days) {
     }));
   }
 
-  // Scoring de auditoria: ranqueia conversas por urgencia de revisao
+  // Scoring de auditoria
   const now = Date.now();
-  const scored = auditCandidatesRaw.map(c => {
+  const allScored = auditCandidatesRaw.map(c => {
     const fields = typeof c.fields === 'string' ? JSON.parse(c.fields) : (c.fields || []);
     const fieldMap = {};
     for (const f of fields) { if (f.name) fieldMap[f.name] = f.value; }
@@ -199,35 +251,30 @@ async function handleInsights(req, res, days) {
     let score = 0;
     const reasons = [];
 
-    // help_achieved
     const help = fieldMap['help_achieved'];
     if (help === 'UNRESPONSIVE') { score += 50; reasons.push('Lead nao respondeu ao bot'); }
     else if (help === 'NO') { score += 40; reasons.push('Bot nao conseguiu ajudar'); }
     else if (help === 'PARTIAL') { score += 15; reasons.push('Ajuda parcial'); }
 
-    // Sentimento
     const sent = fieldMap['sentiment'];
     if (sent === 'Negative') { score += 35; reasons.push('Sentimento negativo'); }
 
-    // Abandono
     const abandon = fieldMap['Abandono'];
     if (abandon === 'Sim' || abandon === 'true') { score += 30; reasons.push('Lead abandonou conversa'); }
 
-    // Escalacao
     if (c.forward_type === 'escalated') { score += 25; reasons.push('Escalada para humano'); }
 
-    // Sem dados de contato coletados
     const hasContact = fieldMap['Nome'] || fieldMap['e-mail'] || fieldMap['Celular'];
-    if (!hasContact && fields.length > 0) { score += 20; reasons.push('Nenhum dado de contato capturado'); }
+    if (!hasContact && fields.length > 0) { score += 20; reasons.push('Sem dados de contato'); }
 
-    // Sem smart fields nenhum
     if (fields.length === 0) { score += 15; reasons.push('Nenhum smart field extraido'); }
 
-    // Conversa longa sem resolucao (open por muito tempo)
     if (c.status === 'open' && c.created_at) {
       const ageH = (now - new Date(c.created_at).getTime()) / 3600000;
       if (ageH > 24) { score += 10; reasons.push('Aberta ha mais de 24h'); }
     }
+
+    const audited = auditedMap[c.conversation_id] || null;
 
     return {
       conversation_id: c.conversation_id,
@@ -239,19 +286,39 @@ async function handleInsights(req, res, days) {
       reasons,
       help_achieved: help || null,
       sentiment: sent || null,
+      audited: audited ? {
+        bot_rating: audited.bot_rating,
+        issue_category: audited.issue_category,
+        audited_by: audited.audited_by,
+        audited_at: audited.audited_at,
+      } : null,
     };
   });
 
-  // Separar em 3 dias e 7 dias, top 10 cada
-  const threeDaysAgo = new Date(now - 3 * 24 * 3600000);
-  const audit3d = scored
-    .filter(c => new Date(c.created_at) >= threeDaysAgo && c.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10);
-  const audit7d = scored
-    .filter(c => c.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10);
+  // Calcular amostras
+  const recommendedTotal = calcSampleSize(totalAudit3d);
+
+  // Criticos: score > 0, ordenados por score
+  const criticalAll = allScored.filter(c => c.score > 0).sort((a, b) => b.score - a.score);
+  const criticalCount = Math.min(criticalAll.length, Math.ceil(recommendedTotal * 0.6));
+  const criticalSample = criticalAll.slice(0, criticalCount);
+
+  // Aleatorios: conversas SEM score critico (score = 0), embaralhados
+  const nonCritical = allScored.filter(c => c.score === 0);
+  const randomCount = Math.max(3, recommendedTotal - criticalCount);
+  // Shuffle usando Fisher-Yates
+  for (let i = nonCritical.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [nonCritical[i], nonCritical[j]] = [nonCritical[j], nonCritical[i]];
+  }
+  const randomSample = nonCritical.slice(0, randomCount).map(c => ({
+    ...c,
+    reasons: ['Amostra aleatoria para QA'],
+  }));
+
+  // Progresso de auditoria
+  const allRecommended = [...criticalSample, ...randomSample];
+  const auditedCount = allRecommended.filter(c => c.audited).length;
 
   return res.status(200).json({
     period: { days },
@@ -260,7 +327,15 @@ async function handleInsights(req, res, days) {
     sentimentOutcome,
     hourlyPattern,
     weekdayPattern,
-    audit3d,
-    audit7d,
+    audit: {
+      totalConversas3d: totalAudit3d,
+      recommendedTotal,
+      criticalCount: criticalSample.length,
+      randomCount: randomSample.length,
+      auditedCount,
+      pctComplete: allRecommended.length > 0 ? Math.round((auditedCount / allRecommended.length) * 100) : 0,
+      critical: criticalSample,
+      random: randomSample,
+    },
   });
 }
