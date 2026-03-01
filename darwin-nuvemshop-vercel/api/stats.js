@@ -1,7 +1,9 @@
 import { sql, ensureTables } from './_lib/db.js';
+import { checkAuth, unauthorized } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
+  if (!checkAuth(req)) return unauthorized(res);
 
   try {
     await ensureTables();

@@ -4,8 +4,11 @@
  *
  * Body: { "url": "https://seu-app.vercel.app" }   (opcional — detecta automaticamente)
  */
+import { checkAuth, unauthorized } from './_lib/auth.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (!checkAuth(req)) return unauthorized(res);
 
   const API_KEY = process.env.DARWIN_API_KEY;
   const BASE_URL = process.env.DARWIN_BASE_URL || 'https://api.getdarwin.ai';
