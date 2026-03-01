@@ -22,8 +22,11 @@
     .status-dot.error { background: #ef4444; }
     .btn { padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: #fff; cursor: pointer; font-size: 13px; }
     .btn:hover { background: rgba(255,255,255,.1); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
     .btn-primary { background: #7c3aed; border-color: #7c3aed; }
     .btn-primary:hover { background: #6d28d9; }
+    .btn-outline { background: transparent; border: 1px solid #d1d5db; color: #374151; }
+    .btn-outline:hover { background: #f3f4f6; }
 
     /* Tabs */
     .tabs { display: flex; gap: 0; background: #fff; border-bottom: 2px solid #e5e7eb; padding: 0 24px; overflow-x: auto; }
@@ -39,11 +42,15 @@
     .panel.active { display: block; }
 
     /* Stats cards */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .stat-card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
     .stat-card .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
     .stat-card .value { font-size: 28px; font-weight: 700; color: #1a1a2e; }
     .stat-card .sub { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+    .stat-card.highlight { border-left: 4px solid #7c3aed; }
+    .stat-card.good .value { color: #16a34a; }
+    .stat-card.warn .value { color: #f59e0b; }
+    .stat-card.bad .value { color: #dc2626; }
 
     /* Tables */
     .table-wrapper { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow-x: auto; }
@@ -60,6 +67,9 @@
     .tag-forwarded { background: #fef3c7; color: #92400e; }
     .tag-analyzed { background: #e0e7ff; color: #3730a3; }
     .tag-event { background: #f3f4f6; color: #374151; }
+    .tag-ok { background: #dcfce7; color: #166534; }
+    .tag-warning { background: #fef3c7; color: #92400e; }
+    .tag-error { background: #fee2e2; color: #991b1b; }
 
     /* Filters */
     .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
@@ -89,11 +99,43 @@
     .breakdown .name { color: #374151; }
     .breakdown .count { font-weight: 600; color: #7c3aed; }
 
+    /* Health checks */
+    .check-card { background: #fff; border-radius: 8px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #e5e7eb; margin-bottom: 8px; }
+    .check-card.ok { border-left-color: #22c55e; }
+    .check-card.warning { border-left-color: #f59e0b; }
+    .check-card.error { border-left-color: #ef4444; }
+    .check-info .check-name { font-size: 13px; font-weight: 600; color: #374151; }
+    .check-info .check-desc { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .check-value { font-size: 20px; font-weight: 700; }
+    .check-card.ok .check-value { color: #16a34a; }
+    .check-card.warning .check-value { color: #f59e0b; }
+    .check-card.error .check-value { color: #dc2626; }
+
+    /* Bar chart (CSS-only) */
+    .bar-chart { display: flex; flex-direction: column; gap: 4px; }
+    .bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .bar-label { width: 50px; text-align: right; color: #6b7280; flex-shrink: 0; }
+    .bar-track { flex: 1; height: 20px; background: #f3f4f6; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: #7c3aed; border-radius: 4px; min-width: 2px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
+    .bar-fill span { font-size: 10px; color: #fff; font-weight: 600; }
+
     /* Webhook setup */
     .setup-box { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-top: 24px; }
     .setup-box h3 { font-size: 14px; margin-bottom: 8px; }
     .setup-box p { font-size: 13px; color: #6b7280; margin-bottom: 12px; }
     .setup-box .result { margin-top: 12px; padding: 12px; background: #f9fafb; border-radius: 6px; font-size: 12px; font-family: monospace; white-space: pre-wrap; }
+
+    /* Section headers */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section-header h3 { font-size: 15px; font-weight: 600; color: #374151; }
+
+    /* Two-column grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* Completeness badge */
+    .completeness { display: inline-flex; gap: 3px; }
+    .completeness .dot { width: 8px; height: 8px; border-radius: 50%; background: #e5e7eb; }
+    .completeness .dot.filled { background: #22c55e; }
 
     /* Login screen */
     .login-overlay {
@@ -119,9 +161,17 @@
     .login-box .login-btn:hover { background: #6d28d9; }
     .login-error { color: #dc2626; font-size: 12px; margin-top: 8px; display: none; }
 
+    /* Pulse animation for last event */
+    .pulse { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+    .pulse.recent { background: #22c55e; animation: pulse-anim 2s infinite; }
+    .pulse.stale { background: #f59e0b; }
+    .pulse.dead { background: #ef4444; }
+    @keyframes pulse-anim { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+
     @media (max-width: 640px) {
       .content { padding: 12px; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -152,10 +202,12 @@
 
 <div class="tabs" id="tabs">
   <div class="tab active" data-panel="overview">Visao Geral</div>
+  <div class="tab" data-panel="performance">Performance SDR</div>
   <div class="tab" data-panel="sessions">Conversas <span class="badge" id="badge-sessions">0</span></div>
   <div class="tab" data-panel="smartfields">Smart Fields <span class="badge" id="badge-sf">0</span></div>
   <div class="tab" data-panel="events">Eventos <span class="badge" id="badge-events">0</span></div>
-  <div class="tab" data-panel="config">Configuracao</div>
+  <div class="tab" data-panel="health">Saude</div>
+  <div class="tab" data-panel="config">Config</div>
 </div>
 
 <div class="content">
@@ -164,7 +216,7 @@
   <div class="panel active" id="panel-overview">
     <div class="stats-grid" id="statsCards"></div>
 
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div class="grid-2">
       <div class="table-wrapper" style="padding:16px;">
         <h3 style="font-size:14px; margin-bottom:12px;">Eventos por Tipo</h3>
         <ul class="breakdown" id="eventsByType"></ul>
@@ -173,6 +225,38 @@
         <h3 style="font-size:14px; margin-bottom:12px;">Smart Fields Capturados</h3>
         <ul class="breakdown" id="sfSummary"></ul>
       </div>
+    </div>
+  </div>
+
+  <!-- PERFORMANCE SDR -->
+  <div class="panel" id="panel-performance">
+    <div class="filters">
+      <select id="kpiPeriod" onchange="loadKpis()">
+        <option value="7">Ultimos 7 dias</option>
+        <option value="14">Ultimos 14 dias</option>
+        <option value="30" selected>Ultimos 30 dias</option>
+        <option value="90">Ultimos 90 dias</option>
+      </select>
+    </div>
+
+    <div class="stats-grid" id="kpiCards"></div>
+
+    <div class="grid-2">
+      <div class="table-wrapper" style="padding:16px;">
+        <h3 style="font-size:14px; margin-bottom:12px;">Volume Diario</h3>
+        <div id="volumeChart" class="bar-chart"></div>
+      </div>
+      <div class="table-wrapper" style="padding:16px;">
+        <h3 style="font-size:14px; margin-bottom:12px;">Top Valores Extraidos</h3>
+        <ul class="breakdown" id="topValues"></ul>
+      </div>
+    </div>
+
+    <div class="table-wrapper" style="padding:16px; margin-top:16px;">
+      <div class="section-header">
+        <h3 style="font-size:14px;">Completude de Dados</h3>
+      </div>
+      <div class="stats-grid" id="completenessCards"></div>
     </div>
   </div>
 
@@ -185,6 +269,7 @@
         <option value="closed">Fechada</option>
         <option value="forwarded">Encaminhada</option>
       </select>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV('sessions')">Exportar CSV</button>
     </div>
     <div class="table-wrapper">
       <table>
@@ -194,6 +279,7 @@
             <th>Status</th>
             <th>Canal</th>
             <th>Encaminh.</th>
+            <th>Dados</th>
             <th>Atualizado</th>
             <th></th>
           </tr>
@@ -210,8 +296,9 @@
       <select id="filterField" onchange="loadSmartFields()">
         <option value="">Todos os campos</option>
       </select>
-      <button class="btn btn-primary" onclick="reprocessSmartFields()" id="reprocessBtn">Reprocessar Eventos</button>
+      <button class="btn btn-primary btn-sm" onclick="reprocessSmartFields()" id="reprocessBtn">Reprocessar Eventos</button>
       <span id="reprocessStatus" style="font-size:12px; color:#6b7280;"></span>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV('smart-fields')" style="margin-left:auto;">Exportar CSV</button>
     </div>
     <div class="table-wrapper">
       <table>
@@ -233,9 +320,8 @@
   <!-- EVENTS -->
   <div class="panel" id="panel-events">
     <div class="filters">
-      <select id="filterEventType" onchange="loadEvents()">
-        <option value="">Todos os tipos</option>
-      </select>
+      <select id="filterEventType" onchange="loadEvents()"></select>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV('events')" style="margin-left:auto;">Exportar CSV</button>
     </div>
     <div class="table-wrapper">
       <table>
@@ -254,6 +340,51 @@
     <div class="pagination" id="eventsPag"></div>
   </div>
 
+  <!-- HEALTH / SAUDE -->
+  <div class="panel" id="panel-health">
+    <div class="section-header">
+      <h3>Status do Webhook</h3>
+      <span id="lastEventStatus" style="font-size:13px;"></span>
+    </div>
+
+    <div id="healthChecks" style="margin-bottom:24px;"></div>
+
+    <div class="grid-2">
+      <div class="table-wrapper" style="padding:16px;">
+        <h3 style="font-size:14px; margin-bottom:12px;">Eventos por Hora (24h)</h3>
+        <div id="hourlyChart" class="bar-chart"></div>
+      </div>
+      <div class="table-wrapper" style="padding:16px;">
+        <h3 style="font-size:14px; margin-bottom:12px;">Tipos de Evento (24h)</h3>
+        <ul class="breakdown" id="types24h"></ul>
+      </div>
+    </div>
+
+    <div id="gapsSection" style="margin-top:16px; display:none;">
+      <div class="table-wrapper" style="padding:16px;">
+        <h3 style="font-size:14px; margin-bottom:12px; color: #dc2626;">Gaps Detectados (periodos sem eventos)</h3>
+        <ul class="breakdown" id="gapsList"></ul>
+      </div>
+    </div>
+
+    <div class="table-wrapper" style="margin-top:16px;">
+      <div class="section-header" style="padding:16px 16px 0;">
+        <h3 style="font-size:14px;">Log de Eventos Recentes</h3>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Conversa</th>
+            <th>Agente</th>
+            <th>Recebido</th>
+          </tr>
+        </thead>
+        <tbody id="recentEventsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- CONFIG -->
   <div class="panel" id="panel-config">
     <div class="setup-box">
@@ -266,16 +397,14 @@
     <div class="setup-box" style="margin-top:16px;">
       <h3>URLs da API</h3>
       <div class="detail-grid" style="margin-top:8px;">
-        <dt>Webhook</dt>
-        <dd id="urlWebhook">—</dd>
-        <dt>Sessions</dt>
-        <dd id="urlSessions">—</dd>
-        <dt>Events</dt>
-        <dd id="urlEvents">—</dd>
-        <dt>Smart Fields</dt>
-        <dd id="urlSf">—</dd>
-        <dt>Stats</dt>
-        <dd id="urlStats">—</dd>
+        <dt>Webhook</dt><dd id="urlWebhook">-</dd>
+        <dt>Sessions</dt><dd id="urlSessions">-</dd>
+        <dt>Events</dt><dd id="urlEvents">-</dd>
+        <dt>Smart Fields</dt><dd id="urlSf">-</dd>
+        <dt>Stats</dt><dd id="urlStats">-</dd>
+        <dt>KPIs</dt><dd id="urlKpis">-</dd>
+        <dt>Health</dt><dd id="urlHealth">-</dd>
+        <dt>Export</dt><dd id="urlExport">-</dd>
       </div>
     </div>
   </div>
@@ -302,15 +431,9 @@
     const pw = document.getElementById('loginPassword').value;
     const errEl = document.getElementById('loginError');
     errEl.style.display = 'none';
-
-    // Test the password against the API
     try {
       const res = await fetch('/api/stats', { headers: { 'x-dashboard-password': pw } });
-      if (res.status === 401) {
-        errEl.style.display = 'block';
-        return false;
-      }
-      // Success
+      if (res.status === 401) { errEl.style.display = 'block'; return false; }
       dashPassword = pw;
       sessionStorage.setItem('dash_password', pw);
       document.getElementById('loginOverlay').classList.add('hidden');
@@ -333,20 +456,13 @@
   document.addEventListener('DOMContentLoaded', async () => {
     setupTabs();
     showUrls();
-
-    // Check if saved password still works
     if (dashPassword) {
       try {
         const res = await fetch('/api/stats', { headers: { 'x-dashboard-password': dashPassword } });
-        if (res.status === 401) {
-          logout();
-          return;
-        }
+        if (res.status === 401) { logout(); return; }
         document.getElementById('loginOverlay').classList.add('hidden');
         refreshAll();
-      } catch {
-        logout();
-      }
+      } catch { logout(); }
     }
   });
 
@@ -367,7 +483,7 @@
   async function refreshAll() {
     setStatus('loading', 'Carregando...');
     try {
-      await Promise.all([loadStats(), loadSessions(), loadSmartFields(), loadEvents()]);
+      await Promise.all([loadStats(), loadSessions(), loadSmartFields(), loadEvents(), loadKpis(), loadHealth()]);
       setStatus('ok', 'Atualizado ' + new Date().toLocaleTimeString('pt-BR'));
     } catch (err) {
       setStatus('error', 'Erro: ' + err.message);
@@ -382,19 +498,14 @@
   // ====== Stats (overview) ======
   async function loadStats() {
     const data = await api('/api/stats');
-
-    // Cards
     const cards = [
       { label: 'Total Conversas', value: data.totals.sessions, sub: `${data.today.sessions} hoje` },
       { label: 'Total Eventos', value: data.totals.events, sub: `${data.today.events} hoje` },
       { label: 'Smart Fields', value: data.totals.smartFields, sub: '' },
     ];
-
-    // Add status breakdown cards
     for (const sc of data.statusCounts) {
       cards.push({ label: statusLabel(sc.status), value: sc.count, sub: '' });
     }
-
     document.getElementById('statsCards').innerHTML = cards.map(c => `
       <div class="stat-card">
         <div class="label">${c.label}</div>
@@ -403,20 +514,149 @@
       </div>
     `).join('');
 
-    // Events by type
     document.getElementById('eventsByType').innerHTML = data.eventsByType.map(e => `
       <li><span class="name">${e.event_type}</span><span class="count">${e.count}</span></li>
     `).join('') || '<li class="empty">Nenhum evento ainda</li>';
 
-    // Smart fields summary
     document.getElementById('sfSummary').innerHTML = data.smartFieldsSummary.map(s => `
       <li><span class="name">${s.field_name}</span><span class="count">${s.count}</span></li>
     `).join('') || '<li class="empty">Nenhum campo ainda</li>';
 
-    // Badges
     document.getElementById('badge-sessions').textContent = data.totals.sessions;
     document.getElementById('badge-events').textContent = data.totals.events;
     document.getElementById('badge-sf').textContent = data.totals.smartFields;
+  }
+
+  // ====== KPIs (Performance SDR) ======
+  async function loadKpis() {
+    const days = document.getElementById('kpiPeriod').value;
+    const data = await api('/api/kpis?days=' + days);
+    const r = data.rates;
+    const c = data.counts;
+    const d = data.duration;
+
+    // KPI Cards
+    const kpis = [
+      { label: 'Total Sessoes', value: c.total, sub: `${days} dias`, cls: '' },
+      { label: 'Taxa Qualificacao', value: r.qualification + '%', sub: `${c.qualified} qualificadas`, cls: r.qualification >= 30 ? 'good' : r.qualification >= 15 ? 'warn' : 'bad' },
+      { label: 'Taxa Resolucao Autonoma', value: r.autonomous + '%', sub: `${c.autonomous} autonomas`, cls: r.autonomous >= 50 ? 'good' : 'warn' },
+      { label: 'Taxa Escalacao', value: r.escalation + '%', sub: `${c.escalated} escaladas`, cls: r.escalation <= 15 ? 'good' : r.escalation <= 30 ? 'warn' : 'bad' },
+      { label: 'Taxa Recuperacao', value: r.recovery + '%', sub: `${c.recovered} recuperadas`, cls: '' },
+      { label: 'Tempo Medio Sessao', value: d.avg_minutes !== null ? d.avg_minutes + ' min' : '-', sub: d.min_minutes !== null ? `Min: ${d.min_minutes} / Max: ${d.max_minutes} min` : '', cls: '' },
+      { label: 'Cobertura de Dados', value: r.dataCoverage + '%', sub: 'conversas com smart fields', cls: r.dataCoverage >= 80 ? 'good' : r.dataCoverage >= 50 ? 'warn' : 'bad' },
+    ];
+
+    document.getElementById('kpiCards').innerHTML = kpis.map(k => `
+      <div class="stat-card highlight ${k.cls}">
+        <div class="label">${k.label}</div>
+        <div class="value">${k.value}</div>
+        ${k.sub ? `<div class="sub">${k.sub}</div>` : ''}
+      </div>
+    `).join('');
+
+    // Volume chart (last 14 days max)
+    const vol = data.volumePerDay.slice(0, 14).reverse();
+    const maxVol = Math.max(...vol.map(v => v.total), 1);
+    document.getElementById('volumeChart').innerHTML = vol.length > 0 ? vol.map(v => {
+      const pct = Math.round((v.total / maxVol) * 100);
+      const day = v.day ? new Date(v.day + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '?';
+      return `<div class="bar-row">
+        <span class="bar-label">${day}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"><span>${v.total}</span></div></div>
+      </div>`;
+    }).join('') : '<div class="empty">Sem dados</div>';
+
+    // Top values
+    document.getElementById('topValues').innerHTML = data.topValues.length > 0
+      ? data.topValues.map(v => `<li><span class="name">${v.field_name}: ${v.field_value}</span><span class="count">${v.count}</span></li>`).join('')
+      : '<li class="empty">Nenhum valor extraido</li>';
+
+    // Completeness cards
+    const comp = data.completeness;
+    const compCards = [
+      { label: 'Com Resumo IA', value: comp.with_summary, total: comp.total },
+      { label: 'Com Titulo', value: comp.with_title, total: comp.total },
+      { label: 'Com Smart Fields', value: comp.with_smart_fields, total: comp.total },
+    ];
+    document.getElementById('completenessCards').innerHTML = compCards.map(cc => {
+      const pct = cc.total > 0 ? Math.round((cc.value / cc.total) * 100) : 0;
+      return `<div class="stat-card">
+        <div class="label">${cc.label}</div>
+        <div class="value">${pct}%</div>
+        <div class="sub">${cc.value} de ${cc.total}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ====== Health / Saude ======
+  async function loadHealth() {
+    const data = await api('/api/health');
+
+    // Last event status
+    const lastEl = document.getElementById('lastEventStatus');
+    if (data.lastEvent) {
+      const ago = timeSince(data.lastEvent.received_at);
+      const mins = (Date.now() - new Date(data.lastEvent.received_at).getTime()) / 60000;
+      const cls = mins < 30 ? 'recent' : mins < 120 ? 'stale' : 'dead';
+      lastEl.innerHTML = `<span class="pulse ${cls}"></span>Ultimo evento: ${ago} (${data.lastEvent.event_type})`;
+    } else {
+      lastEl.innerHTML = '<span class="pulse dead"></span>Nenhum evento recebido';
+    }
+
+    // Checks
+    document.getElementById('healthChecks').innerHTML = data.checks.map(ch => {
+      const valueStr = ch.total !== undefined ? `${ch.value} / ${ch.total}` : `${ch.value}`;
+      return `<div class="check-card ${ch.status}">
+        <div class="check-info">
+          <div class="check-name">${ch.name}</div>
+          <div class="check-desc">${ch.description}</div>
+        </div>
+        <div>
+          <span class="check-value">${valueStr}</span>
+          <span class="tag tag-${ch.status}" style="margin-left:8px;">${ch.status === 'ok' ? 'OK' : ch.status === 'warning' ? 'ATENCAO' : 'CRITICO'}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Hourly chart
+    const hours = data.eventsPerHour.slice(0, 24).reverse();
+    const maxH = Math.max(...hours.map(h => h.count), 1);
+    document.getElementById('hourlyChart').innerHTML = hours.length > 0 ? hours.map(h => {
+      const pct = Math.round((h.count / maxH) * 100);
+      const hr = new Date(h.hour).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      return `<div class="bar-row">
+        <span class="bar-label">${hr}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"><span>${h.count}</span></div></div>
+      </div>`;
+    }).join('') : '<div class="empty">Sem dados nas ultimas 24h</div>';
+
+    // Event types 24h
+    document.getElementById('types24h').innerHTML = data.eventsByType24h.length > 0
+      ? data.eventsByType24h.map(e => `<li><span class="name">${e.event_type}</span><span class="count">${e.count}</span></li>`).join('')
+      : '<li class="empty">Nenhum evento nas ultimas 24h</li>';
+
+    // Gaps
+    const gapsSection = document.getElementById('gapsSection');
+    if (data.gaps.length > 0) {
+      gapsSection.style.display = 'block';
+      document.getElementById('gapsList').innerHTML = data.gaps.map(g => {
+        const from = new Date(g.from).toLocaleString('pt-BR');
+        const to = new Date(g.to).toLocaleString('pt-BR');
+        return `<li><span class="name">${from} - ${to}</span><span class="count" style="color:#dc2626;">${g.hours}h sem eventos</span></li>`;
+      }).join('');
+    } else {
+      gapsSection.style.display = 'none';
+    }
+
+    // Recent events log
+    document.getElementById('recentEventsBody').innerHTML = data.recentEvents.length > 0
+      ? data.recentEvents.map(e => `<tr>
+          <td><span class="tag tag-event">${e.event_type}</span></td>
+          <td title="${e.conversation_id}">${e.conversation_id?.substring(0, 12) || '-'}...</td>
+          <td>${e.agent_name || '-'}</td>
+          <td>${fmtDate(e.received_at)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="4" class="empty">Nenhum evento</td></tr>';
   }
 
   // ====== Sessions ======
@@ -427,21 +667,29 @@
     const data = await api('/api/sessions' + params);
 
     if (data.sessions.length === 0) {
-      document.getElementById('sessionsBody').innerHTML = '<tr><td colspan="6" class="empty">Nenhuma conversa encontrada. Registre o webhook e aguarde os dados.</td></tr>';
+      document.getElementById('sessionsBody').innerHTML = '<tr><td colspan="7" class="empty">Nenhuma conversa encontrada.</td></tr>';
       document.getElementById('sessionsPag').innerHTML = '';
       return;
     }
 
-    document.getElementById('sessionsBody').innerHTML = data.sessions.map(s => `
-      <tr>
-        <td title="${s.conversation_id}">${s.conversation_title || s.conversation_id?.substring(0, 12) + '...' || '—'}</td>
+    document.getElementById('sessionsBody').innerHTML = data.sessions.map(s => {
+      // Completeness dots: title, summary, smart fields (approx via summary presence)
+      const hasTitle = !!s.conversation_title;
+      const hasSummary = !!s.summary;
+      const hasForward = s.status === 'forwarded' || s.status === 'open'; // not needed if open
+      return `<tr>
+        <td title="${s.conversation_id}">${s.conversation_title || s.conversation_id?.substring(0, 12) + '...' || '-'}</td>
         <td><span class="tag tag-${s.status || 'open'}">${statusLabel(s.status)}</span></td>
-        <td>${s.channel_name || '—'}</td>
-        <td>${s.forward_type ? `<span class="tag tag-forwarded">${s.forward_type}</span> ${s.forwarded_to || ''}` : '—'}</td>
+        <td>${s.channel_name || '-'}</td>
+        <td>${s.forward_type ? `<span class="tag tag-forwarded">${s.forward_type}</span> ${s.forwarded_to || ''}` : '-'}</td>
+        <td><span class="completeness" title="Titulo / Resumo IA">
+          <span class="dot ${hasTitle ? 'filled' : ''}"></span>
+          <span class="dot ${hasSummary ? 'filled' : ''}"></span>
+        </span></td>
         <td>${fmtDate(s.updated_at)}</td>
-        <td><button class="btn" onclick="openSessionDetail('${s.conversation_id}')">Ver</button></td>
-      </tr>
-    `).join('');
+        <td><button class="btn btn-outline btn-sm" onclick="openSessionDetail('${s.conversation_id}')">Ver</button></td>
+      </tr>`;
+    }).join('');
 
     renderPagination('sessionsPag', data.pagination, 'loadSessions');
   }
@@ -453,7 +701,6 @@
     const params = `?page=${currentPage.sf}&limit=30` + (field ? `&field=${encodeURIComponent(field)}` : '');
     const data = await api('/api/smart-fields' + params);
 
-    // Populate filter options
     const select = document.getElementById('filterField');
     const current = select.value;
     if (data.fieldNames && data.fieldNames.length > 0) {
@@ -471,9 +718,9 @@
     document.getElementById('sfBody').innerHTML = data.smartFields.map(sf => `
       <tr>
         <td><strong>${sf.field_name}</strong></td>
-        <td>${sf.field_value || '—'}</td>
-        <td title="${sf.conversation_id}">${sf.conversation_title || sf.conversation_id?.substring(0, 12) + '...' || '—'}</td>
-        <td>${sf.session_status ? `<span class="tag tag-${sf.session_status}">${statusLabel(sf.session_status)}</span>` : '—'}</td>
+        <td>${sf.field_value || '-'}</td>
+        <td title="${sf.conversation_id}">${sf.conversation_title || sf.conversation_id?.substring(0, 12) + '...' || '-'}</td>
+        <td>${sf.session_status ? `<span class="tag tag-${sf.session_status}">${statusLabel(sf.session_status)}</span>` : '-'}</td>
         <td>${fmtDate(sf.captured_at)}</td>
       </tr>
     `).join('');
@@ -488,7 +735,6 @@
     const params = `?page=${currentPage.events}&limit=30` + (type ? `&type=${encodeURIComponent(type)}` : '');
     const data = await api('/api/events' + params);
 
-    // Populate filter (from event types seen)
     const select = document.getElementById('filterEventType');
     const current = select.value;
     const types = [...new Set(data.events.map(e => e.event_type))];
@@ -506,10 +752,10 @@
     document.getElementById('eventsBody').innerHTML = data.events.map(e => `
       <tr>
         <td><span class="tag tag-event">${e.event_type}</span></td>
-        <td title="${e.conversation_id}">${e.conversation_id?.substring(0, 12) || '—'}...</td>
-        <td>${e.agent_name || '—'}</td>
+        <td title="${e.conversation_id}">${e.conversation_id?.substring(0, 12) || '-'}...</td>
+        <td>${e.agent_name || '-'}</td>
         <td>${fmtDate(e.event_timestamp || e.received_at)}</td>
-        <td><button class="btn" onclick="showPayload('${e.id}', this)" data-payload='${escapeAttr(e.raw_payload)}'>JSON</button></td>
+        <td><button class="btn btn-outline btn-sm" onclick="showPayload('${e.id}', this)" data-payload='${escapeAttr(e.raw_payload)}'>JSON</button></td>
       </tr>
     `).join('');
 
@@ -525,12 +771,13 @@
       <h3>Sessao</h3>
       <dl class="detail-grid">
         <dt>Conversa ID</dt><dd>${s.conversation_id}</dd>
-        <dt>Titulo</dt><dd>${s.conversation_title || '—'}</dd>
+        <dt>Titulo</dt><dd>${s.conversation_title || '-'}</dd>
         <dt>Status</dt><dd><span class="tag tag-${s.status}">${statusLabel(s.status)}</span></dd>
-        <dt>Canal</dt><dd>${s.channel_name || '—'}</dd>
-        <dt>Encaminhamento</dt><dd>${s.forward_type ? `${s.forward_type} → ${s.forwarded_to || ''}` : '—'}</dd>
-        <dt>Resumo IA</dt><dd>${s.summary || '—'}</dd>
+        <dt>Canal</dt><dd>${s.channel_name || '-'}</dd>
+        <dt>Encaminhamento</dt><dd>${s.forward_type ? `${s.forward_type} -> ${s.forwarded_to || ''}` : '-'}</dd>
+        <dt>Resumo IA</dt><dd>${s.summary || '-'}</dd>
         <dt>Criado</dt><dd>${fmtDate(s.created_at)}</dd>
+        <dt>Fechado</dt><dd>${fmtDate(s.closed_at)}</dd>
         <dt>Atualizado</dt><dd>${fmtDate(s.updated_at)}</dd>
       </dl>
     </section>`;
@@ -548,7 +795,7 @@
       html += `<section><h3>Eventos (${data.events.length})</h3><table>
         <thead><tr><th>Tipo</th><th>Agente</th><th>Quando</th></tr></thead>
         <tbody>${data.events.map(e => `
-          <tr><td><span class="tag tag-event">${e.event_type}</span></td><td>${e.agent_name || '—'}</td><td>${fmtDate(e.event_timestamp || e.received_at)}</td></tr>
+          <tr><td><span class="tag tag-event">${e.event_type}</span></td><td>${e.agent_name || '-'}</td><td>${fmtDate(e.event_timestamp || e.received_at)}</td></tr>
         `).join('')}</tbody>
       </table></section>`;
     }
@@ -558,9 +805,7 @@
     document.getElementById('modal').classList.add('active');
   }
 
-  function closeModal() {
-    document.getElementById('modal').classList.remove('active');
-  }
+  function closeModal() { document.getElementById('modal').classList.remove('active'); }
   document.getElementById('modal').addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay')) closeModal();
   });
@@ -568,33 +813,43 @@
   // ====== Reprocess smart fields ======
   async function reprocessSmartFields() {
     const btn = document.getElementById('reprocessBtn');
-    const status = document.getElementById('reprocessStatus');
-    btn.disabled = true;
-    btn.textContent = 'Reprocessando...';
-    status.textContent = '';
-
+    const st = document.getElementById('reprocessStatus');
+    btn.disabled = true; btn.textContent = 'Reprocessando...'; st.textContent = '';
     try {
       const data = await api('/api/reprocess-smart-fields', { method: 'POST' });
-      status.textContent = `${data.newSmartFields} novos campos extraidos de ${data.conversationsProcessed} conversas`;
-      status.style.color = data.newSmartFields > 0 ? '#16a34a' : '#6b7280';
-      // Recarrega os dados
-      await Promise.all([loadStats(), loadSmartFields()]);
+      st.textContent = `${data.newSmartFields} novos campos de ${data.conversationsProcessed} conversas`;
+      st.style.color = data.newSmartFields > 0 ? '#16a34a' : '#6b7280';
+      await Promise.all([loadStats(), loadSmartFields(), loadKpis()]);
     } catch (err) {
-      status.textContent = 'Erro: ' + err.message;
-      status.style.color = '#dc2626';
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Reprocessar Eventos';
-    }
+      st.textContent = 'Erro: ' + err.message; st.style.color = '#dc2626';
+    } finally { btn.disabled = false; btn.textContent = 'Reprocessar Eventos'; }
+  }
+
+  // ====== Export CSV ======
+  function exportCSV(type) {
+    const url = `/api/export?type=${type}`;
+    const a = document.createElement('a');
+    // Add auth via fetch then download
+    fetch(url, { headers: { 'x-dashboard-password': dashPassword } })
+      .then(r => {
+        if (!r.ok) throw new Error('Erro ao exportar');
+        return r.blob();
+      })
+      .then(blob => {
+        const blobUrl = URL.createObjectURL(blob);
+        a.href = blobUrl;
+        a.download = `${type}-${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+      })
+      .catch(err => alert('Erro: ' + err.message));
   }
 
   // ====== Webhook setup ======
   async function setupWebhook() {
     const btn = document.getElementById('webhookBtn');
     const result = document.getElementById('webhookResult');
-    btn.disabled = true;
-    btn.textContent = 'Registrando...';
-
+    btn.disabled = true; btn.textContent = 'Registrando...';
     try {
       const data = await api('/api/setup-webhook', { method: 'POST' });
       result.style.display = 'block';
@@ -602,10 +857,7 @@
     } catch (err) {
       result.style.display = 'block';
       result.textContent = 'Erro: ' + err.message;
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Registrar Webhook';
-    }
+    } finally { btn.disabled = false; btn.textContent = 'Registrar Webhook'; }
   }
 
   // ====== Show URLs ======
@@ -616,6 +868,9 @@
     document.getElementById('urlEvents').textContent = base + '/api/events';
     document.getElementById('urlSf').textContent = base + '/api/smart-fields';
     document.getElementById('urlStats').textContent = base + '/api/stats';
+    document.getElementById('urlKpis').textContent = base + '/api/kpis';
+    document.getElementById('urlHealth').textContent = base + '/api/health';
+    document.getElementById('urlExport').textContent = base + '/api/export?type=sessions';
   }
 
   // ====== Show raw payload ======
@@ -623,7 +878,11 @@
     try {
       const raw = btn.dataset.payload;
       const parsed = JSON.parse(raw);
-      alert(JSON.stringify(parsed, null, 2));
+      // Use modal instead of alert for better UX
+      document.getElementById('modalTitle').textContent = 'Payload do Evento';
+      document.getElementById('modalContent').innerHTML =
+        `<pre style="background:#f9fafb; padding:16px; border-radius:8px; font-size:12px; overflow:auto; max-height:60vh;">${JSON.stringify(parsed, null, 2)}</pre>`;
+      document.getElementById('modal').classList.add('active');
     } catch {
       alert(btn.dataset.payload || 'Sem payload');
     }
@@ -639,18 +898,29 @@
   }
 
   function fmtDate(d) {
-    if (!d) return '—';
+    if (!d) return '-';
     try { return new Date(d).toLocaleString('pt-BR'); } catch { return d; }
   }
 
   function statusLabel(s) {
     const m = { open: 'Aberta', closed: 'Fechada', forwarded: 'Encaminhada' };
-    return m[s] || s || '—';
+    return m[s] || s || '-';
   }
 
   function escapeAttr(s) {
     if (!s) return '';
     return s.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+  }
+
+  function timeSince(dateStr) {
+    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (seconds < 60) return seconds + 's atras';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return minutes + 'min atras';
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return hours + 'h atras';
+    const days = Math.floor(hours / 24);
+    return days + 'd atras';
   }
 
   function renderPagination(elId, pag, fnName) {

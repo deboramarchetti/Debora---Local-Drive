@@ -58,8 +58,21 @@ export async function ensureTables() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS daily_metrics (
+      id              SERIAL PRIMARY KEY,
+      metric_date     DATE NOT NULL,
+      metric_name     TEXT NOT NULL,
+      metric_value    NUMERIC DEFAULT 0,
+      metadata        TEXT,
+      calculated_at   TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(metric_date, metric_name)
+    )
+  `;
+
   await sql`CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_events_conv ON events(conversation_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_sf_conv ON smart_fields(conversation_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_daily_date ON daily_metrics(metric_date)`;
 }
