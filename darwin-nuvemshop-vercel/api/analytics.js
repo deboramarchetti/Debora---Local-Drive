@@ -4,16 +4,8 @@ import { checkAuth, unauthorized } from './_lib/auth.js';
 /**
  * GET /api/analytics
  *
- * Inteligencia de negocio baseada nos smart fields extraidos:
- * - Funil de qualificacao (campos preenchidos por conversa)
- * - Distribuicao de sentimento, topic, interesse, faturamento
- * - Taxa de help_achieved (efetividade do bot)
- * - Abandono
- * - Campos mais/menos preenchidos (gaps do bot)
- * - Tendencia historica (daily_metrics)
- *
- * Query params:
- *   ?days=30  (periodo, default 30)
+ * Business intelligence — queries otimizadas em paralelo.
+ * ?days=30
  */
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
@@ -24,28 +16,82 @@ export default async function handler(req, res) {
 
     const days = Math.min(90, Math.max(1, parseInt(req.query.days) || 30));
 
-    // Total de conversas no periodo (para calcular %)
-    const totalResult = await sql`
-      SELECT COUNT(*)::int as total
-      FROM sessions
-      WHERE created_at > NOW() - INTERVAL '1 day' * ${days}
-    `;
-    const totalConversas = totalResult[0].total || 0;
+    // Todas as queries independentes em paralelo
+    const [
+      totalResult,
+      funnelRaw,
+      allDistributions,
+      sentimentOutcome,
+      hourlyPattern,
+      weekdayPattern,
+      missingCritical,
+    ] = await Promise.all([
 
-    // 1. FUNIL: quantas conversas tem cada campo preenchido
-    const funnelRaw = await sql`
-      SELECT
-        sf.field_name,
-        COUNT(DISTINCT sf.conversation_id)::int as conversas
-      FROM smart_fields sf
-      JOIN sessions s ON s.conversation_id = sf.conversation_id
-      WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
-        AND sf.field_name NOT IN ('canal', 'status_final', 'cliente', 'resumo', 'tipo_encaminhamento', 'encaminhado_para')
-      GROUP BY sf.field_name
-      ORDER BY conversas DESC
-    `;
+      // 1. Total conversas
+      sql`SELECT COUNT(*)::int as total FROM sessions
+          WHERE created_at > NOW() - INTERVAL '1 day' * ${days}`,
 
-    // Funil ordenado por etapa logica de qualificacao
+      // 2. Funil: campos preenchidos por conversa
+      sql`SELECT sf.field_name, COUNT(DISTINCT sf.conversation_id)::int as conversas
+          FROM smart_fields sf
+          JOIN sessions s ON s.conversation_id = sf.conversation_id
+          WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
+            AND sf.field_name NOT IN ('canal', 'status_final', 'cliente', 'resumo', 'tipo_encaminhamento', 'encaminhado_para')
+          GROUP BY sf.field_name
+          ORDER BY conversas DESC`,
+
+      // 3. Todas as distribuicoes numa unica query
+      sql`SELECT sf.field_name, sf.field_value, COUNT(*)::int as count
+          FROM smart_fields sf
+          JOIN sessions s ON s.conversation_id = sf.conversation_id
+          WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
+            AND sf.field_name IN ('sentiment', 'topic', 'interest', 'Faturamento mensal', 'help_achieved', 'Abandono')
+          GROUP BY sf.field_name, sf.field_value
+          ORDER BY sf.field_name, count DESC`,
+
+      // 4. Sentimento x Desfecho
+      sql`SELECT sf.field_value as sentiment, s.status, s.forward_type, COUNT(*)::int as count
+          FROM smart_fields sf
+          JOIN sessions s ON s.conversation_id = sf.conversation_id
+          WHERE sf.field_name = 'sentiment'
+            AND s.created_at > NOW() - INTERVAL '1 day' * ${days}
+          GROUP BY sf.field_value, s.status, s.forward_type
+          ORDER BY sf.field_value, count DESC`,
+
+      // 5. Horario de pico
+      sql`SELECT EXTRACT(HOUR FROM created_at)::int as hour,
+            COUNT(*)::int as total,
+            COUNT(*) FILTER (WHERE status = 'forwarded' AND forward_type = 'qualified')::int as qualified
+          FROM sessions
+          WHERE created_at > NOW() - INTERVAL '1 day' * ${days} AND created_at IS NOT NULL
+          GROUP BY EXTRACT(HOUR FROM created_at)
+          ORDER BY hour`,
+
+      // 6. Dia da semana
+      sql`SELECT EXTRACT(DOW FROM created_at)::int as dow,
+            COUNT(*)::int as total,
+            COUNT(*) FILTER (WHERE status = 'forwarded' AND forward_type = 'qualified')::int as qualified
+          FROM sessions
+          WHERE created_at > NOW() - INTERVAL '1 day' * ${days} AND created_at IS NOT NULL
+          GROUP BY EXTRACT(DOW FROM created_at)
+          ORDER BY dow`,
+
+      // 7. Conversas sem dados criticos
+      sql`SELECT s.conversation_id, s.conversation_title, s.status, s.forward_type, s.created_at
+          FROM sessions s
+          WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
+            AND NOT EXISTS (
+              SELECT 1 FROM smart_fields sf
+              WHERE sf.conversation_id = s.conversation_id
+                AND sf.field_name IN ('Nome', 'e-mail', 'Celular', 'Faturamento mensal')
+            )
+          ORDER BY s.created_at DESC
+          LIMIT 20`,
+    ]);
+
+    const totalConversas = totalResult[0]?.total || 0;
+
+    // Processar funil
     const funnelOrder = [
       'Nome', 'topic', 'interest', 'sentiment',
       'Faturamento mensal', 'e-mail', 'Celular',
@@ -64,7 +110,6 @@ export default async function handler(req, res) {
         pct: totalConversas > 0 ? Math.round((funnelMap[name] / totalConversas) * 100) : 0,
       }));
 
-    // Campos que existem mas nao estao no funil (extras)
     const funnelOrderSet = new Set(funnelOrder);
     const extraFields = funnelRaw
       .filter(r => !funnelOrderSet.has(r.field_name))
@@ -74,128 +119,21 @@ export default async function handler(req, res) {
         pct: totalConversas > 0 ? Math.round((r.conversas / totalConversas) * 100) : 0,
       }));
 
-    // 2. DISTRIBUICOES de campos-chave
-    const distributionFields = ['sentiment', 'topic', 'interest', 'Faturamento mensal', 'help_achieved', 'Abandono'];
+    // Processar distribuicoes a partir da query unica
     const distributions = {};
-
-    for (const fieldName of distributionFields) {
-      const rows = await sql`
-        SELECT sf.field_value, COUNT(*)::int as count
-        FROM smart_fields sf
-        JOIN sessions s ON s.conversation_id = sf.conversation_id
-        WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
-          AND sf.field_name = ${fieldName}
-        GROUP BY sf.field_value
-        ORDER BY count DESC
-        LIMIT 15
-      `;
-      if (rows.length > 0) {
-        const total = rows.reduce((sum, r) => sum + r.count, 0);
-        distributions[fieldName] = rows.map(r => ({
-          value: r.field_value,
-          count: r.count,
-          pct: total > 0 ? Math.round((r.count / total) * 100) : 0,
-        }));
-      }
+    const distGrouped = {};
+    for (const row of allDistributions) {
+      if (!distGrouped[row.field_name]) distGrouped[row.field_name] = [];
+      distGrouped[row.field_name].push(row);
     }
-
-    // 3. EFETIVIDADE DO BOT: cruzar help_achieved x status
-    const botEffectiveness = await sql`
-      SELECT
-        sf.field_value as help_result,
-        s.status,
-        s.forward_type,
-        COUNT(*)::int as count
-      FROM smart_fields sf
-      JOIN sessions s ON s.conversation_id = sf.conversation_id
-      WHERE sf.field_name = 'help_achieved'
-        AND s.created_at > NOW() - INTERVAL '1 day' * ${days}
-      GROUP BY sf.field_value, s.status, s.forward_type
-      ORDER BY count DESC
-    `;
-
-    // 4. SENTIMENTO x DESFECHO: sentimento impacta qualificacao?
-    const sentimentOutcome = await sql`
-      SELECT
-        sf.field_value as sentiment,
-        s.status,
-        s.forward_type,
-        COUNT(*)::int as count
-      FROM smart_fields sf
-      JOIN sessions s ON s.conversation_id = sf.conversation_id
-      WHERE sf.field_name = 'sentiment'
-        AND s.created_at > NOW() - INTERVAL '1 day' * ${days}
-      GROUP BY sf.field_value, s.status, s.forward_type
-      ORDER BY sf.field_value, count DESC
-    `;
-
-    // 5. FATURAMENTO x QUALIFICACAO: leads de qual faixa convertem mais?
-    const revenueOutcome = await sql`
-      SELECT
-        sf.field_value as faturamento,
-        s.status,
-        s.forward_type,
-        COUNT(*)::int as count
-      FROM smart_fields sf
-      JOIN sessions s ON s.conversation_id = sf.conversation_id
-      WHERE sf.field_name = 'Faturamento mensal'
-        AND s.created_at > NOW() - INTERVAL '1 day' * ${days}
-      GROUP BY sf.field_value, s.status, s.forward_type
-      ORDER BY sf.field_value, count DESC
-    `;
-
-    // 6. TENDENCIA HISTORICA (daily_metrics)
-    const dailyTrend = await sql`
-      SELECT metric_date, metric_name, metric_value
-      FROM daily_metrics
-      WHERE metric_date > NOW() - INTERVAL '1 day' * ${days}
-      ORDER BY metric_date DESC
-    `;
-
-    // 7. HORARIO DE PICO: quando as conversas sao criadas
-    const hourlyPattern = await sql`
-      SELECT
-        EXTRACT(HOUR FROM created_at)::int as hour,
-        COUNT(*)::int as total,
-        COUNT(*) FILTER (WHERE status = 'forwarded' AND forward_type = 'qualified')::int as qualified
-      FROM sessions
-      WHERE created_at > NOW() - INTERVAL '1 day' * ${days}
-        AND created_at IS NOT NULL
-      GROUP BY EXTRACT(HOUR FROM created_at)
-      ORDER BY hour
-    `;
-
-    // 8. DIA DA SEMANA
-    const weekdayPattern = await sql`
-      SELECT
-        EXTRACT(DOW FROM created_at)::int as dow,
-        COUNT(*)::int as total,
-        COUNT(*) FILTER (WHERE status = 'forwarded' AND forward_type = 'qualified')::int as qualified
-      FROM sessions
-      WHERE created_at > NOW() - INTERVAL '1 day' * ${days}
-        AND created_at IS NOT NULL
-      GROUP BY EXTRACT(DOW FROM created_at)
-      ORDER BY dow
-    `;
-
-    // 9. CONVERSAS SEM DADOS CRITICOS (oportunidades perdidas)
-    const missingCritical = await sql`
-      SELECT
-        s.conversation_id,
-        s.conversation_title,
-        s.status,
-        s.forward_type,
-        s.created_at
-      FROM sessions s
-      WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
-        AND NOT EXISTS (
-          SELECT 1 FROM smart_fields sf
-          WHERE sf.conversation_id = s.conversation_id
-            AND sf.field_name IN ('Nome', 'e-mail', 'Celular', 'Faturamento mensal')
-        )
-      ORDER BY s.created_at DESC
-      LIMIT 20
-    `;
+    for (const [fieldName, rows] of Object.entries(distGrouped)) {
+      const total = rows.reduce((sum, r) => sum + r.count, 0);
+      distributions[fieldName] = rows.slice(0, 15).map(r => ({
+        value: r.field_value,
+        count: r.count,
+        pct: total > 0 ? Math.round((r.count / total) * 100) : 0,
+      }));
+    }
 
     return res.status(200).json({
       period: { days },
@@ -203,10 +141,7 @@ export default async function handler(req, res) {
       funnel,
       extraFields,
       distributions,
-      botEffectiveness,
       sentimentOutcome,
-      revenueOutcome,
-      dailyTrend,
       hourlyPattern,
       weekdayPattern,
       missingCritical,

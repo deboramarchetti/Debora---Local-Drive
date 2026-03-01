@@ -728,6 +728,10 @@
       console.warn('[insights] failed to load:', e);
       return;
     }
+    try { renderInsights(data); } catch (e) { console.error('[insights render]', e); }
+  }
+
+  function renderInsights(data) {
 
     // --- 1. Insight Cards ---
     const cards = [];
