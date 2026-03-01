@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     const webhooks = await existing.json();
 
     // See if webhook already points here
-    const alreadyExists = Array.isArray(webhooks) && webhooks.some(w => w.url === webhookUrl);
+    const alreadyExists = Array.isArray(webhooks) && webhooks.some(w => w.webhookUrl === webhookUrl || w.url === webhookUrl);
 
     if (alreadyExists) {
       return res.status(200).json({
@@ -46,8 +46,8 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        url: webhookUrl,
-        events: ['session.*', 'function.call.*']
+        webhookUrl: webhookUrl,
+        types: ['session.*', 'function.call.*']
       })
     });
 
