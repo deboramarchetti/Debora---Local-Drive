@@ -1,5 +1,4 @@
-import { sql } from '@vercel/postgres';
-import { ensureTables } from './_lib/db.js';
+import { sql, ensureTables } from './_lib/db.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
@@ -10,7 +9,7 @@ export default async function handler(req, res) {
   try {
     await ensureTables();
 
-    const { rows: sessions } = await sql`
+    const sessions = await sql`
       SELECT * FROM sessions WHERE conversation_id = ${id}
     `;
 
@@ -18,12 +17,12 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    const { rows: smartFields } = await sql`
+    const smartFields = await sql`
       SELECT field_name, field_value, captured_at FROM smart_fields
       WHERE conversation_id = ${id} ORDER BY captured_at DESC
     `;
 
-    const { rows: events } = await sql`
+    const events = await sql`
       SELECT event_type, agent_name, event_timestamp, raw_payload, received_at FROM events
       WHERE conversation_id = ${id} ORDER BY received_at DESC
     `;

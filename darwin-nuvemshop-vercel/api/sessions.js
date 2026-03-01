@@ -1,5 +1,4 @@
-import { sql } from '@vercel/postgres';
-import { ensureTables } from './_lib/db.js';
+import { sql, ensureTables } from './_lib/db.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
@@ -12,24 +11,26 @@ export default async function handler(req, res) {
     const offset = (page - 1) * limit;
     const status = req.query.status || null;
 
-    let rows, total;
+    let rows, countResult;
 
     if (status) {
-      ({ rows } = await sql`
+      rows = await sql`
         SELECT * FROM sessions WHERE status = ${status}
         ORDER BY updated_at DESC LIMIT ${limit} OFFSET ${offset}
-      `);
-      ({ rows: [{ count: total }] } = await sql`
+      `;
+      countResult = await sql`
         SELECT COUNT(*)::int as count FROM sessions WHERE status = ${status}
-      `);
+      `;
     } else {
-      ({ rows } = await sql`
+      rows = await sql`
         SELECT * FROM sessions ORDER BY updated_at DESC LIMIT ${limit} OFFSET ${offset}
-      `);
-      ({ rows: [{ count: total }] } = await sql`
+      `;
+      countResult = await sql`
         SELECT COUNT(*)::int as count FROM sessions
-      `);
+      `;
     }
+
+    const total = countResult[0]?.count || 0;
 
     return res.status(200).json({
       sessions: rows,

@@ -1,17 +1,15 @@
-import { sql } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
 
-// Mapeia DATABASE_URL → POSTGRES_URL se necessário
-// (o @vercel/postgres espera POSTGRES_URL)
-if (!process.env.POSTGRES_URL && process.env.DATABASE_URL) {
-  process.env.POSTGRES_URL = process.env.DATABASE_URL;
+function getSQL() {
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (!url) throw new Error('DATABASE_URL ou POSTGRES_URL nao configurada');
+  return neon(url);
 }
-if (!process.env.POSTGRES_URL_NON_POOLING && process.env.DATABASE_URL_UNPOOLED) {
-  process.env.POSTGRES_URL_NON_POOLING = process.env.DATABASE_URL_UNPOOLED;
-}
+
+export const sql = getSQL();
 
 /**
  * Garante que as tabelas existem.
- * Chamado automaticamente nas rotas — se as tabelas já existem, não faz nada.
  */
 export async function ensureTables() {
   await sql`
@@ -60,7 +58,6 @@ export async function ensureTables() {
     )
   `;
 
-  // Indexes for fast queries
   await sql`CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_events_conv ON events(conversation_id)`;

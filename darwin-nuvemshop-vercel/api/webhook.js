@@ -1,5 +1,4 @@
-import { sql } from '@vercel/postgres';
-import { ensureTables } from './_lib/db.js';
+import { sql, ensureTables } from './_lib/db.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
