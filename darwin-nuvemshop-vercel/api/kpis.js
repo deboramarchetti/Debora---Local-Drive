@@ -109,23 +109,14 @@ async function handleKpis(req, res, days) {
 async function handleInsights(req, res, days) {
   const [
     totalResult,
-    funnelRaw,
     allDistributions,
     sentimentOutcome,
     hourlyPattern,
     weekdayPattern,
-    missingCritical,
+    auditCandidatesRaw,
   ] = await Promise.all([
     sql`SELECT COUNT(*)::int as total FROM sessions
         WHERE created_at > NOW() - INTERVAL '1 day' * ${days}`,
-
-    sql`SELECT sf.field_name, COUNT(DISTINCT sf.conversation_id)::int as conversas
-        FROM smart_fields sf
-        JOIN sessions s ON s.conversation_id = sf.conversation_id
-        WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
-          AND sf.field_name NOT IN ('canal', 'status_final', 'cliente', 'resumo', 'tipo_encaminhamento', 'encaminhado_para')
-        GROUP BY sf.field_name
-        ORDER BY conversas DESC`,
 
     sql`SELECT sf.field_name, sf.field_value, COUNT(*)::int as count
         FROM smart_fields sf
@@ -159,47 +150,30 @@ async function handleInsights(req, res, days) {
         GROUP BY EXTRACT(DOW FROM created_at)
         ORDER BY dow`,
 
-    sql`SELECT s.conversation_id, s.conversation_title, s.status, s.forward_type, s.created_at
+    // Conversas candidatas a auditoria: busca sessoes recentes com seus smart fields
+    sql`SELECT
+          s.conversation_id,
+          s.conversation_title,
+          s.status,
+          s.forward_type,
+          s.forwarded_to,
+          s.summary,
+          s.created_at,
+          s.closed_at,
+          COALESCE(json_agg(json_build_object('name', sf.field_name, 'value', sf.field_value))
+            FILTER (WHERE sf.field_name IS NOT NULL), '[]') as fields
         FROM sessions s
+        LEFT JOIN smart_fields sf ON sf.conversation_id = s.conversation_id
         WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
-          AND NOT EXISTS (
-            SELECT 1 FROM smart_fields sf
-            WHERE sf.conversation_id = s.conversation_id
-              AND sf.field_name IN ('Nome', 'e-mail', 'Celular', 'Faturamento mensal')
-          )
+        GROUP BY s.id, s.conversation_id, s.conversation_title, s.status,
+                 s.forward_type, s.forwarded_to, s.summary, s.created_at, s.closed_at
         ORDER BY s.created_at DESC
-        LIMIT 20`,
+        LIMIT 100`,
   ]);
 
   const totalConversas = totalResult[0]?.total || 0;
 
-  const funnelOrder = [
-    'Nome', 'topic', 'interest', 'sentiment',
-    'Faturamento mensal', 'e-mail', 'Celular',
-    'URL da loja', 'nome da empresa', 'Canais de venda v2',
-    'product suggested', 'meeting link',
-    'help_achieved', 'Detalhes sobre o projeto'
-  ];
-  const funnelMap = {};
-  for (const r of funnelRaw) funnelMap[r.field_name] = r.conversas;
-
-  const funnel = funnelOrder
-    .filter(name => funnelMap[name] !== undefined)
-    .map(name => ({
-      field: name,
-      conversas: funnelMap[name],
-      pct: totalConversas > 0 ? Math.round((funnelMap[name] / totalConversas) * 100) : 0,
-    }));
-
-  const funnelOrderSet = new Set(funnelOrder);
-  const extraFields = funnelRaw
-    .filter(r => !funnelOrderSet.has(r.field_name))
-    .map(r => ({
-      field: r.field_name,
-      conversas: r.conversas,
-      pct: totalConversas > 0 ? Math.round((r.conversas / totalConversas) * 100) : 0,
-    }));
-
+  // Processar distribuicoes
   const distributions = {};
   const distGrouped = {};
   for (const row of allDistributions) {
@@ -215,15 +189,78 @@ async function handleInsights(req, res, days) {
     }));
   }
 
+  // Scoring de auditoria: ranqueia conversas por urgencia de revisao
+  const now = Date.now();
+  const scored = auditCandidatesRaw.map(c => {
+    const fields = typeof c.fields === 'string' ? JSON.parse(c.fields) : (c.fields || []);
+    const fieldMap = {};
+    for (const f of fields) { if (f.name) fieldMap[f.name] = f.value; }
+
+    let score = 0;
+    const reasons = [];
+
+    // help_achieved
+    const help = fieldMap['help_achieved'];
+    if (help === 'UNRESPONSIVE') { score += 50; reasons.push('Lead nao respondeu ao bot'); }
+    else if (help === 'NO') { score += 40; reasons.push('Bot nao conseguiu ajudar'); }
+    else if (help === 'PARTIAL') { score += 15; reasons.push('Ajuda parcial'); }
+
+    // Sentimento
+    const sent = fieldMap['sentiment'];
+    if (sent === 'Negative') { score += 35; reasons.push('Sentimento negativo'); }
+
+    // Abandono
+    const abandon = fieldMap['Abandono'];
+    if (abandon === 'Sim' || abandon === 'true') { score += 30; reasons.push('Lead abandonou conversa'); }
+
+    // Escalacao
+    if (c.forward_type === 'escalated') { score += 25; reasons.push('Escalada para humano'); }
+
+    // Sem dados de contato coletados
+    const hasContact = fieldMap['Nome'] || fieldMap['e-mail'] || fieldMap['Celular'];
+    if (!hasContact && fields.length > 0) { score += 20; reasons.push('Nenhum dado de contato capturado'); }
+
+    // Sem smart fields nenhum
+    if (fields.length === 0) { score += 15; reasons.push('Nenhum smart field extraido'); }
+
+    // Conversa longa sem resolucao (open por muito tempo)
+    if (c.status === 'open' && c.created_at) {
+      const ageH = (now - new Date(c.created_at).getTime()) / 3600000;
+      if (ageH > 24) { score += 10; reasons.push('Aberta ha mais de 24h'); }
+    }
+
+    return {
+      conversation_id: c.conversation_id,
+      conversation_title: c.conversation_title,
+      status: c.status,
+      forward_type: c.forward_type,
+      created_at: c.created_at,
+      score,
+      reasons,
+      help_achieved: help || null,
+      sentiment: sent || null,
+    };
+  });
+
+  // Separar em 3 dias e 7 dias, top 10 cada
+  const threeDaysAgo = new Date(now - 3 * 24 * 3600000);
+  const audit3d = scored
+    .filter(c => new Date(c.created_at) >= threeDaysAgo && c.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+  const audit7d = scored
+    .filter(c => c.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+
   return res.status(200).json({
     period: { days },
     totalConversas,
-    funnel,
-    extraFields,
     distributions,
     sentimentOutcome,
     hourlyPattern,
     weekdayPattern,
-    missingCritical,
+    audit3d,
+    audit7d,
   });
 }
