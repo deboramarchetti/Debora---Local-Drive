@@ -154,6 +154,9 @@
 
     /* Insight cards */
     .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .check-label { display:flex; align-items:center; gap:6px; font-size:13px; padding:6px 8px; border-radius:6px; border:1px solid #e5e7eb; cursor:pointer; transition:background .15s; }
+    .check-label:hover { background:#f3f4f6; }
+    .check-label input[type=checkbox] { accent-color:#7c3aed; width:16px; height:16px; }
     .insight-card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-top: 3px solid #7c3aed; }
     .insight-card .insight-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
     .insight-card .insight-value { font-size: 24px; font-weight: 700; color: #1a1a2e; }
@@ -353,18 +356,17 @@
       </div>
 
       <div style="margin-bottom:12px; display:none;" id="rejectionReasonGroup">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Motivo da Reprovacao</label>
-        <select id="auditRejectionReason" onchange="toggleOutroField()" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;">
-          <option value="">Selecione o motivo...</option>
-          <option value="tom">Tom da conversa</option>
-          <option value="precisao">Precisao das respostas</option>
-          <option value="fluxo">Fluxo da conversa</option>
-          <option value="captura_dados">Captura de dados</option>
-          <option value="escalacao">Escalacao incorreta</option>
-          <option value="informacao_errada">Informacao errada</option>
-          <option value="nao_entendeu">Bot nao entendeu o cliente</option>
-          <option value="outro">Outro</option>
-        </select>
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Problemas Identificados <span style="font-size:11px; color:#9ca3af; font-weight:400;">(selecione todos que se aplicam)</span></label>
+        <div id="auditRejectionReasons" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+          <label class="check-label"><input type="checkbox" value="tom"> Tom da conversa</label>
+          <label class="check-label"><input type="checkbox" value="precisao"> Precisao das respostas</label>
+          <label class="check-label"><input type="checkbox" value="fluxo"> Fluxo da conversa</label>
+          <label class="check-label"><input type="checkbox" value="captura_dados"> Captura de dados</label>
+          <label class="check-label"><input type="checkbox" value="escalacao"> Escalacao incorreta</label>
+          <label class="check-label"><input type="checkbox" value="informacao_errada"> Informacao errada</label>
+          <label class="check-label"><input type="checkbox" value="nao_entendeu"> Bot nao entendeu o cliente</label>
+          <label class="check-label"><input type="checkbox" value="outro" onchange="toggleOutroField()"> Outro</label>
+        </div>
       </div>
 
       <div style="margin-bottom:12px; display:none;" id="rejectionDetailGroup">
@@ -990,6 +992,7 @@
       <thead><tr>
         <th style="width:36px;"></th>
         <th>Conversa ID</th>
+        <th>Telefone</th>
         <th>Lead</th>
         <th>Status</th>
         <th>Razao</th>
@@ -1000,10 +1003,15 @@
         const done = !!c.audited;
         const rowStyle = done ? (c.audited.approved ? 'background:#f0fdf4;' : 'background:#fef2f2;') : '';
         const auditLabel = done ? (c.audited.approved ? '<span style="color:#16a34a;">Aprovado</span>' : '<span style="color:#dc2626;">Reprovado — ' + (c.audited.rejection_reason || c.audited.issue_category || '?') + '</span>') : '';
-        const shortId = c.conversation_id ? c.conversation_id.substring(0, 10) : '-';
+        const cid = c.conversation_id || '';
+        const parts = cid.split('-');
+        const shortId = parts[0] || cid.substring(0, 10);
+        const phone = parts.length > 1 ? parts.slice(1).join('-') : '-';
+        const phoneFormatted = phone !== '-' ? '+' + phone.replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '$1 ($2) $3-$4') : '-';
         return `<tr style="${rowStyle}">
           <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:${done ? (c.audited.approved ? '#dcfce7' : '#fee2e2') : scoreBg(c.score)}; color:${done ? (c.audited.approved ? '#16a34a' : '#dc2626') : scoreColor(c.score)};">${done ? (c.audited.approved ? '✓' : '✗') : '#' + (i + 1)}</span></td>
-          <td style="font-family:monospace; font-size:11px; color:#6b7280; white-space:nowrap;" title="${c.conversation_id || ''}">${shortId}</td>
+          <td style="font-family:monospace; font-size:11px; color:#6b7280; white-space:nowrap;" title="${cid}">${shortId}</td>
+          <td style="font-family:monospace; font-size:12px; white-space:nowrap; color:#374151; cursor:pointer;" title="Clique para copiar" onclick="navigator.clipboard.writeText('${phone}').then(()=>this.style.color='#16a34a',setTimeout(()=>this.style.color='#374151',1000))">${phoneFormatted}</td>
           <td><strong>${c.conversation_title || c.conversation_id?.substring(0, 12) + '...' || '-'}</strong>${done ? '<br><span style="font-size:11px;">' + auditLabel + '</span>' : ''}</td>
           <td><span class="tag tag-${c.status || 'open'}">${statusLabel(c.status)}</span>${c.forward_type ? ' <span class="tag tag-forwarded">' + c.forward_type + '</span>' : ''}</td>
           <td style="font-size:12px; color:#374151; max-width:280px;">${c.reasons.join(' / ')}</td>
@@ -1022,7 +1030,7 @@
     currentAuditApproved = null;
     document.getElementById('auditConvId').value = convId;
     document.getElementById('auditType').value = auditType;
-    document.getElementById('auditRejectionReason').value = '';
+    document.querySelectorAll('#auditRejectionReasons input[type=checkbox]').forEach(cb => cb.checked = false);
     document.getElementById('auditRejectionDetail').value = '';
     document.getElementById('auditNotes').value = '';
     document.getElementById('auditBy').value = localStorage.getItem('audit_user') || '';
@@ -1050,15 +1058,19 @@
     if (val) {
       document.getElementById('rejectionReasonGroup').style.display = 'none';
       document.getElementById('rejectionDetailGroup').style.display = 'none';
-      document.getElementById('auditRejectionReason').value = '';
+      document.querySelectorAll('#auditRejectionReasons input[type=checkbox]').forEach(cb => cb.checked = false);
       document.getElementById('auditRejectionDetail').value = '';
     }
   }
 
+  function getSelectedReasons() {
+    return [...document.querySelectorAll('#auditRejectionReasons input[type=checkbox]:checked')].map(cb => cb.value);
+  }
   function toggleOutroField() {
-    const reason = document.getElementById('auditRejectionReason').value;
-    document.getElementById('rejectionDetailGroup').style.display = reason === 'outro' ? 'block' : 'none';
-    if (reason !== 'outro') document.getElementById('auditRejectionDetail').value = '';
+    const reasons = getSelectedReasons();
+    const hasOutro = reasons.includes('outro');
+    document.getElementById('rejectionDetailGroup').style.display = hasOutro ? 'block' : 'none';
+    if (!hasOutro) document.getElementById('auditRejectionDetail').value = '';
   }
 
   async function submitAudit() {
@@ -1066,14 +1078,15 @@
     const auditType = document.getElementById('auditType').value;
     const auditor = document.getElementById('auditBy').value;
     const approved = currentAuditApproved;
-    const rejectionReason = document.getElementById('auditRejectionReason').value || null;
+    const reasons = getSelectedReasons();
+    const rejectionReason = reasons.length > 0 ? reasons.join(', ') : null;
     const rejectionDetail = document.getElementById('auditRejectionDetail').value.trim() || null;
     const notes = document.getElementById('auditNotes').value.trim() || null;
 
     if (approved === null) { document.getElementById('auditSubmitStatus').textContent = 'Selecione Aprovado ou Nao'; return; }
     if (!auditor) { document.getElementById('auditSubmitStatus').textContent = 'Selecione seu nome'; return; }
-    if (!approved && !rejectionReason) { document.getElementById('auditSubmitStatus').textContent = 'Selecione o motivo da reprovacao'; return; }
-    if (!approved && rejectionReason === 'outro' && !rejectionDetail) { document.getElementById('auditSubmitStatus').textContent = 'Detalhe o motivo da reprovacao'; return; }
+    if (!approved && reasons.length === 0) { document.getElementById('auditSubmitStatus').textContent = 'Selecione ao menos um problema identificado'; return; }
+    if (!approved && reasons.includes('outro') && !rejectionDetail) { document.getElementById('auditSubmitStatus').textContent = 'Detalhe o motivo da reprovacao'; return; }
     if (!approved && !notes) { document.getElementById('auditSubmitStatus').textContent = 'Observacoes sao obrigatorias quando reprovado'; return; }
 
     localStorage.setItem('audit_user', auditor);
@@ -1177,7 +1190,7 @@
     document.getElementById('qaRejectionsBody').innerHTML = rejections.length > 0 ? rejections.map(r => `
       <tr>
         <td><strong>${r.conversation_title || r.conversation_id?.substring(0, 12) + '...' || '-'}</strong></td>
-        <td><span class="tag tag-forwarded">${reasonLabels[r.rejection_reason] || r.rejection_reason || '-'}</span>${r.rejection_detail ? '<br><span style="font-size:11px; color:#6b7280;">' + r.rejection_detail + '</span>' : ''}</td>
+        <td>${(r.rejection_reason || '-').split(', ').map(rr => `<span class="tag tag-forwarded">${reasonLabels[rr.trim()] || rr.trim()}</span>`).join(' ')}${r.rejection_detail ? '<br><span style="font-size:11px; color:#6b7280;">' + r.rejection_detail + '</span>' : ''}</td>
         <td style="font-size:12px; max-width:300px;">${r.notes || '-'}</td>
         <td>${r.audited_by || '-'}</td>
         <td style="white-space:nowrap; font-size:12px;">${fmtDate(r.audited_at)}</td>
