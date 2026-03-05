@@ -249,11 +249,11 @@
 <div class="tabs" id="tabs">
   <div class="tab active" data-panel="overview">Visao Geral</div>
   <div class="tab" data-panel="insights">Insights</div>
+  <div class="tab" data-panel="qa-insights">QA - Auditar + Insights</div>
   <div class="tab" data-panel="performance">Performance SDR</div>
   <div class="tab" data-panel="sessions">Conversas <span class="badge" id="badge-sessions">0</span></div>
   <div class="tab" data-panel="smartfields">Smart Fields <span class="badge" id="badge-sf">0</span></div>
   <div class="tab" data-panel="events">Eventos <span class="badge" id="badge-events">0</span></div>
-  <div class="tab" data-panel="qa-insights">QA Insights</div>
   <div class="tab" data-panel="health">Saude</div>
   <div class="tab" data-panel="config">Config</div>
 </div>
@@ -285,34 +285,12 @@
         <option value="30">Ultimos 30 dias</option>
         <option value="90">Ultimos 90 dias</option>
       </select>
-      <span style="font-size:12px; color:#9ca3af; margin-left:8px;">Periodo para graficos. QA sempre ultimos 3 dias.</span>
     </div>
 
-    <!-- 1. Recommendation + Progress Bar -->
-    <div id="auditRecommendation" style="margin-bottom:16px;"></div>
-
-    <!-- 2. Insight Cards -->
+    <!-- Insight Cards -->
     <div class="insight-grid" id="insightCards"></div>
 
-    <!-- 3. QA Criticos -->
-    <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
-      <div class="section-header">
-        <h3 style="font-size:15px; font-weight:600;">QA: Casos Criticos (3 dias)</h3>
-        <span style="font-size:12px; color:#9ca3af;">Conversas com problemas identificados — prioridade maxima</span>
-      </div>
-      <div id="auditCritical"></div>
-    </div>
-
-    <!-- 4. QA Amostra Aleatoria -->
-    <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
-      <div class="section-header">
-        <h3 style="font-size:15px; font-weight:600;">QA: Amostra Aleatoria (3 dias)</h3>
-        <span style="font-size:12px; color:#9ca3af;">Amostra sem vies para avaliar qualidade geral do bot</span>
-      </div>
-      <div id="auditRandom"></div>
-    </div>
-
-    <!-- 5+6. Sentiment + help_achieved -->
+    <!-- Sentiment + help_achieved -->
     <div class="dist-grid" style="margin-bottom:16px;">
       <div class="dist-card">
         <h4>Sentimento dos Leads</h4>
@@ -538,12 +516,42 @@
         <option value="30" selected>Ultimos 30 dias</option>
         <option value="90">Ultimos 90 dias</option>
       </select>
+      <span style="font-size:12px; color:#9ca3af; margin-left:8px;">Insights usa periodo selecionado. Auditorias sempre ultimos 3 dias.</span>
     </div>
 
-    <!-- KPI Cards -->
+    <!-- 1. Audit Progress Bar (3 dias) -->
+    <div id="auditRecommendation" style="margin-bottom:16px;"></div>
+
+    <!-- 2. Audit Insight Cards (sentimento, sem resposta, abandono) -->
+    <div class="insight-grid" id="auditInsightCards" style="margin-bottom:16px;"></div>
+
+    <!-- 3. QA Criticos (3 dias) -->
+    <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
+      <div class="section-header">
+        <h3 style="font-size:15px; font-weight:600;">QA: Casos Criticos (3 dias)</h3>
+        <span style="font-size:12px; color:#9ca3af;">Conversas com problemas identificados — prioridade maxima</span>
+      </div>
+      <div id="auditCritical"></div>
+    </div>
+
+    <!-- 4. QA Amostra Aleatoria (3 dias) -->
+    <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
+      <div class="section-header">
+        <h3 style="font-size:15px; font-weight:600;">QA: Amostra Aleatoria (3 dias)</h3>
+        <span style="font-size:12px; color:#9ca3af;">Amostra sem vies para avaliar qualidade geral do bot</span>
+      </div>
+      <div id="auditRandom"></div>
+    </div>
+
+    <!-- Divider -->
+    <div style="border-top:2px solid #e5e7eb; margin:24px 0; padding-top:24px;">
+      <h2 style="font-size:18px; font-weight:700; color:#1a1a2e; margin-bottom:16px;">Resultados das Auditorias</h2>
+    </div>
+
+    <!-- 5. QA Insights KPI Cards -->
     <div class="stats-grid" id="qaKpiCards"></div>
 
-    <div class="grid-2">
+    <div class="grid-2" style="margin-top:16px;">
       <!-- Reprovacoes por Motivo -->
       <div class="table-wrapper" style="padding:16px;">
         <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">Reprovacoes por Motivo</h3>
@@ -851,32 +859,7 @@
   let currentAuditApproved = null;
 
   function renderInsights(data) {
-    const a = data.audit || {};
-
-    // --- 1. Recommendation + Progress ---
-    const remaining = a.recommendedTotal - a.auditedCount;
-    const pctDone = a.pctComplete || 0;
-    const barColor = pctDone >= 80 ? '#16a34a' : pctDone >= 40 ? '#f59e0b' : '#dc2626';
-    document.getElementById('auditRecommendation').innerHTML = a.totalConversas3d > 0 ? `
-      <div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); border-left:4px solid ${barColor};">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <div>
-            <span style="font-size:20px; font-weight:700; color:#1a1a2e;">Auditar ${a.recommendedTotal} conversas</span>
-            <span style="font-size:13px; color:#6b7280; margin-left:8px;">(${a.criticalCount} criticas + ${a.randomCount} aleatorias) de ${a.totalConversas3d} nos ultimos 3 dias</span>
-          </div>
-          <div style="text-align:right;">
-            <span style="font-size:24px; font-weight:700; color:${barColor};">${a.auditedCount}/${a.recommendedTotal}</span>
-            <div style="font-size:11px; color:#9ca3af;">${remaining > 0 ? remaining + ' restantes' : 'Completo!'}</div>
-          </div>
-        </div>
-        <div style="background:#f3f4f6; border-radius:6px; height:12px; overflow:hidden;">
-          <div style="background:${barColor}; height:100%; width:${pctDone}%; border-radius:6px; transition:width .3s;"></div>
-        </div>
-        <div style="font-size:11px; color:#9ca3af; margin-top:4px;">${pctDone}% concluido — meta: 60%+ do volume total auditado</div>
-      </div>
-    ` : '<div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); text-align:center; color:#9ca3af;">Nenhuma conversa nos ultimos 3 dias</div>';
-
-    // --- 2. Insight Cards ---
+    // --- 1. Insight Cards (Insights tab) ---
     const cards = [];
     const sentDist = data.distributions?.sentiment;
     if (sentDist && sentDist.length > 0) {
@@ -904,11 +887,7 @@
       </div>
     `).join('') : '';
 
-    // --- 3. Audit Tables ---
-    renderAuditTable('auditCritical', a.critical, 'critical');
-    renderAuditTable('auditRandom', a.random, 'random');
-
-    // --- 4. Distribuicoes ---
+    // --- 2. Distribuicoes ---
     renderDistribution('distSentiment', data.distributions?.sentiment, ['#16a34a', '#6b7280', '#dc2626', '#f59e0b']);
     renderDistribution('distHelpAchieved', data.distributions?.help_achieved, ['#16a34a', '#dc2626', '#6b7280', '#f59e0b']);
     renderDistribution('distFaturamento', data.distributions?.['Faturamento mensal'], DIST_COLORS);
@@ -918,10 +897,10 @@
     combined.sort((a, b) => b.count - a.count);
     renderDistribution('distTopic', combined.length > 0 ? combined.slice(0, 10) : null, DIST_COLORS);
 
-    // --- 5. Cross table ---
+    // --- 3. Cross table ---
     renderCrossTable('crossSentiment', data.sentimentOutcome);
 
-    // --- 6. Hourly + Weekly ---
+    // --- 4. Hourly + Weekly ---
     const hourly = data.hourlyPattern || [];
     const maxH = Math.max(...hourly.map(h => h.total), 1);
     document.getElementById('hourlyPatternChart').innerHTML = hourly.length > 0 ? hourly.map(h => {
@@ -936,6 +915,67 @@
       const pct = Math.round((w.total / maxW) * 100);
       return `<div class="bar-row"><span class="bar-label">${WEEKDAYS[w.dow] || w.dow}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;"><span>${w.total}</span></div></div></div>`;
     }).join('') : '<div class="empty">Sem dados</div>';
+
+    // --- 5. Render audit sections in QA tab ---
+    renderAuditSection(data);
+  }
+
+  function renderAuditSection(data) {
+    const a = data.audit || {};
+
+    // Progress bar
+    const remaining = a.recommendedTotal - a.auditedCount;
+    const pctDone = a.pctComplete || 0;
+    const barColor = pctDone >= 80 ? '#16a34a' : pctDone >= 40 ? '#f59e0b' : '#dc2626';
+    document.getElementById('auditRecommendation').innerHTML = a.totalConversas3d > 0 ? `
+      <div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); border-left:4px solid ${barColor};">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div>
+            <span style="font-size:20px; font-weight:700; color:#1a1a2e;">Auditar ${a.recommendedTotal} conversas</span>
+            <span style="font-size:13px; color:#6b7280; margin-left:8px;">(${a.criticalCount} criticas + ${a.randomCount} aleatorias) de ${a.totalConversas3d} nos ultimos 3 dias</span>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:24px; font-weight:700; color:${barColor};">${a.auditedCount}/${a.recommendedTotal}</span>
+            <div style="font-size:11px; color:#9ca3af;">${remaining > 0 ? remaining + ' restantes' : 'Completo!'}</div>
+          </div>
+        </div>
+        <div style="background:#f3f4f6; border-radius:6px; height:12px; overflow:hidden;">
+          <div style="background:${barColor}; height:100%; width:${pctDone}%; border-radius:6px; transition:width .3s;"></div>
+        </div>
+        <div style="font-size:11px; color:#9ca3af; margin-top:4px;">${pctDone}% concluido — meta: 60%+ do volume total auditado</div>
+      </div>
+    ` : '<div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); text-align:center; color:#9ca3af;">Nenhuma conversa nos ultimos 3 dias</div>';
+
+    // Audit insight cards (sentimento, sem resposta, abandono)
+    const cards = [];
+    const sentDist = data.distributions?.sentiment;
+    if (sentDist && sentDist.length > 0) {
+      const top = sentDist[0];
+      cards.push({ label: 'Sentimento Predominante', value: top.value, detail: `${top.pct}% (${top.count})`, color: top.value === 'Positive' ? '#16a34a' : top.value === 'Negative' ? '#dc2626' : '#6b7280' });
+    }
+    const helpDist = data.distributions?.help_achieved;
+    if (helpDist) {
+      const unr = helpDist.find(h => h.value === 'UNRESPONSIVE');
+      if (unr) cards.push({ label: 'Sem Resposta', value: unr.pct + '%', detail: `${unr.count} UNRESPONSIVE`, color: unr.pct > 40 ? '#dc2626' : unr.pct > 20 ? '#f59e0b' : '#16a34a' });
+    }
+    const abDist = data.distributions?.Abandono;
+    if (abDist) {
+      const sim = abDist.find(a => a.value === 'Sim' || a.value === 'true');
+      if (sim) cards.push({ label: 'Abandono', value: sim.pct + '%', detail: `${sim.count} abandonos`, color: sim.pct > 30 ? '#dc2626' : '#f59e0b' });
+    }
+    if (data.totalConversas > 0) cards.push({ label: 'Total Conversas', value: data.totalConversas, detail: 'periodo selecionado', color: '#7c3aed' });
+
+    document.getElementById('auditInsightCards').innerHTML = cards.length > 0 ? cards.map(c => `
+      <div class="insight-card">
+        <div class="insight-label">${c.label}</div>
+        <div class="insight-value" style="color:${c.color}">${c.value}</div>
+        <div class="insight-detail">${c.detail}</div>
+      </div>
+    `).join('') : '';
+
+    // Audit tables
+    renderAuditTable('auditCritical', a.critical, 'critical');
+    renderAuditTable('auditRandom', a.random, 'random');
   }
 
   function renderAuditTable(elementId, items, auditType) {
