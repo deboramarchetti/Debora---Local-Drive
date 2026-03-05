@@ -989,6 +989,7 @@
     el.innerHTML = `<table>
       <thead><tr>
         <th style="width:36px;"></th>
+        <th>Conversa ID</th>
         <th>Lead</th>
         <th>Status</th>
         <th>Razao</th>
@@ -999,8 +1000,10 @@
         const done = !!c.audited;
         const rowStyle = done ? (c.audited.approved ? 'background:#f0fdf4;' : 'background:#fef2f2;') : '';
         const auditLabel = done ? (c.audited.approved ? '<span style="color:#16a34a;">Aprovado</span>' : '<span style="color:#dc2626;">Reprovado — ' + (c.audited.rejection_reason || c.audited.issue_category || '?') + '</span>') : '';
+        const shortId = c.conversation_id ? c.conversation_id.substring(0, 10) : '-';
         return `<tr style="${rowStyle}">
           <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:${done ? (c.audited.approved ? '#dcfce7' : '#fee2e2') : scoreBg(c.score)}; color:${done ? (c.audited.approved ? '#16a34a' : '#dc2626') : scoreColor(c.score)};">${done ? (c.audited.approved ? '✓' : '✗') : '#' + (i + 1)}</span></td>
+          <td style="font-family:monospace; font-size:11px; color:#6b7280; white-space:nowrap;" title="${c.conversation_id || ''}">${shortId}</td>
           <td><strong>${c.conversation_title || c.conversation_id?.substring(0, 12) + '...' || '-'}</strong>${done ? '<br><span style="font-size:11px;">' + auditLabel + '</span>' : ''}</td>
           <td><span class="tag tag-${c.status || 'open'}">${statusLabel(c.status)}</span>${c.forward_type ? ' <span class="tag tag-forwarded">' + c.forward_type + '</span>' : ''}</td>
           <td style="font-size:12px; color:#374151; max-width:280px;">${c.reasons.join(' / ')}</td>
