@@ -51,6 +51,14 @@ async function handleSaveAudit(req, res) {
   await sql`
     INSERT INTO audit_log (conversation_id, audit_type, approved, rejection_reason, rejection_detail, issue_category, notes, audited_by)
     VALUES (${conversation_id}, ${audit_type}, ${approved}, ${rejection_reason || null}, ${rejection_detail || null}, ${rejection_reason || null}, ${notes || null}, ${audited_by || null})
+    ON CONFLICT (conversation_id, audit_type) DO UPDATE SET
+      approved = ${approved},
+      rejection_reason = ${rejection_reason || null},
+      rejection_detail = ${rejection_detail || null},
+      issue_category = ${rejection_reason || null},
+      notes = ${notes || null},
+      audited_by = ${audited_by || null},
+      audited_at = NOW()
   `;
 
   return res.status(200).json({ ok: true });

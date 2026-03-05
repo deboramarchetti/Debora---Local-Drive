@@ -91,6 +91,14 @@ export async function ensureTables() {
   await sql`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS approved BOOLEAN`;
   await sql`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS rejection_reason TEXT`;
   await sql`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS rejection_detail TEXT`;
+  // Remove duplicates before creating unique index (keep most recent)
+  await sql`
+    DELETE FROM audit_log a USING audit_log b
+    WHERE a.conversation_id = b.conversation_id
+      AND a.audit_type = b.audit_type
+      AND a.id < b.id
+  `;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_audit_conv_type ON audit_log(conversation_id, audit_type)`;
 
   await sql`CREATE INDEX IF NOT EXISTS idx_audit_conv ON audit_log(conversation_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)`;

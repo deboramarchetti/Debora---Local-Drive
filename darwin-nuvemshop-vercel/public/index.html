@@ -1018,7 +1018,9 @@
           <td style="white-space:nowrap; font-size:12px;">${fmtDate(c.created_at)}</td>
           <td style="white-space:nowrap;">
             <button class="btn btn-outline btn-sm" onclick="openSessionDetail('${c.conversation_id}')" style="margin-right:4px;">Ver</button>
-            ${done ? '' : `<button class="btn btn-primary btn-sm" onclick="openAuditModal('${c.conversation_id}', '${auditType}')">Auditar</button>`}
+            ${done
+              ? `<button class="btn btn-outline btn-sm" onclick='openAuditModal("${c.conversation_id}", "${auditType}", ${JSON.stringify(JSON.stringify(c.audited))})' style="color:#6b7280;">Editar</button>`
+              : `<button class="btn btn-primary btn-sm" onclick="openAuditModal('${c.conversation_id}', '${auditType}')">Auditar</button>`}
           </td>
         </tr>`;
       }).join('')}</tbody>
@@ -1026,7 +1028,7 @@
   }
 
   // Audit modal
-  function openAuditModal(convId, auditType) {
+  function openAuditModal(convId, auditType, existingJson) {
     currentAuditApproved = null;
     document.getElementById('auditConvId').value = convId;
     document.getElementById('auditType').value = auditType;
@@ -1042,6 +1044,23 @@
     document.getElementById('approvedYes').style.color = '';
     document.getElementById('approvedNo').style.background = '';
     document.getElementById('approvedNo').style.color = '';
+
+    // Pre-fill if editing existing audit
+    if (existingJson) {
+      const existing = typeof existingJson === 'string' ? JSON.parse(existingJson) : existingJson;
+      setAuditApproved(existing.approved);
+      if (!existing.approved && existing.rejection_reason) {
+        const reasons = existing.rejection_reason.split(', ').map(r => r.trim());
+        document.querySelectorAll('#auditRejectionReasons input[type=checkbox]').forEach(cb => {
+          if (reasons.includes(cb.value)) cb.checked = true;
+        });
+        if (reasons.includes('outro')) toggleOutroField();
+      }
+      if (existing.rejection_detail) document.getElementById('auditRejectionDetail').value = existing.rejection_detail;
+      if (existing.notes) document.getElementById('auditNotes').value = existing.notes;
+      if (existing.audited_by) document.getElementById('auditBy').value = existing.audited_by;
+    }
+
     document.getElementById('auditModal').classList.add('active');
   }
   function closeAuditModal() { document.getElementById('auditModal').classList.remove('active'); }
