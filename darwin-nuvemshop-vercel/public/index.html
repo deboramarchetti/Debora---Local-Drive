@@ -253,6 +253,7 @@
   <div class="tab" data-panel="sessions">Conversas <span class="badge" id="badge-sessions">0</span></div>
   <div class="tab" data-panel="smartfields">Smart Fields <span class="badge" id="badge-sf">0</span></div>
   <div class="tab" data-panel="events">Eventos <span class="badge" id="badge-events">0</span></div>
+  <div class="tab" data-panel="qa-insights">QA Insights</div>
   <div class="tab" data-panel="health">Saude</div>
   <div class="tab" data-panel="config">Config</div>
 </div>
@@ -366,43 +367,46 @@
       <input type="hidden" id="auditType">
 
       <div style="margin-bottom:12px;">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Nota do Bot (1-5)</label>
-        <div style="display:flex; gap:8px;" id="auditRatingBtns">
-          <button class="btn btn-outline" onclick="setAuditRating(1)" data-r="1" style="width:40px;">1</button>
-          <button class="btn btn-outline" onclick="setAuditRating(2)" data-r="2" style="width:40px;">2</button>
-          <button class="btn btn-outline" onclick="setAuditRating(3)" data-r="3" style="width:40px;">3</button>
-          <button class="btn btn-outline" onclick="setAuditRating(4)" data-r="4" style="width:40px;">4</button>
-          <button class="btn btn-outline" onclick="setAuditRating(5)" data-r="5" style="width:40px;">5</button>
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Aprovado?</label>
+        <div style="display:flex; gap:8px;" id="auditApprovedBtns">
+          <button class="btn btn-outline" onclick="setAuditApproved(true)" id="approvedYes" style="flex:1; padding:10px;">Sim</button>
+          <button class="btn btn-outline" onclick="setAuditApproved(false)" id="approvedNo" style="flex:1; padding:10px;">Nao</button>
         </div>
-        <span style="font-size:11px; color:#9ca3af;">1=pessimo, 3=ok, 5=excelente</span>
       </div>
 
-      <div style="margin-bottom:12px;">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Categoria do Problema</label>
-        <select id="auditCategory" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;">
-          <option value="">Sem problema / N/A</option>
+      <div style="margin-bottom:12px; display:none;" id="rejectionReasonGroup">
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Motivo da Reprovacao</label>
+        <select id="auditRejectionReason" onchange="toggleOutroField()" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;">
+          <option value="">Selecione o motivo...</option>
           <option value="tom">Tom da conversa</option>
           <option value="precisao">Precisao das respostas</option>
           <option value="fluxo">Fluxo da conversa</option>
           <option value="captura_dados">Captura de dados</option>
           <option value="escalacao">Escalacao incorreta</option>
+          <option value="informacao_errada">Informacao errada</option>
+          <option value="nao_entendeu">Bot nao entendeu o cliente</option>
           <option value="outro">Outro</option>
         </select>
       </div>
 
-      <div style="margin-bottom:12px;">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Observacoes</label>
-        <textarea id="auditNotes" rows="2" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; resize:vertical;" placeholder="O que aconteceu nessa conversa..."></textarea>
+      <div style="margin-bottom:12px; display:none;" id="rejectionDetailGroup">
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Detalhe do motivo</label>
+        <input id="auditRejectionDetail" type="text" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;" placeholder="Descreva o motivo...">
       </div>
 
-      <div style="margin-bottom:16px;">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Acao no Prompt</label>
-        <textarea id="auditPromptAction" rows="2" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; resize:vertical;" placeholder="O que mudar no prompt para evitar isso..."></textarea>
+      <div style="margin-bottom:12px;" id="auditNotesGroup">
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Observacoes <span id="notesRequired" style="color:#dc2626; display:none;">*obrigatorio</span></label>
+        <textarea id="auditNotes" rows="3" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; resize:vertical;" placeholder="Detalhes sobre o que aconteceu nessa conversa..."></textarea>
       </div>
 
       <div style="margin-bottom:16px;">
         <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Seu nome</label>
-        <input id="auditBy" type="text" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;" placeholder="Quem esta auditando">
+        <select id="auditBy" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;">
+          <option value="">Selecione...</option>
+          <option value="Thais">Thais</option>
+          <option value="Renato">Renato</option>
+          <option value="Debora">Debora</option>
+        </select>
       </div>
 
       <div style="display:flex; gap:8px;">
@@ -523,6 +527,60 @@
       </table>
     </div>
     <div class="pagination" id="eventsPag"></div>
+  </div>
+
+  <!-- QA INSIGHTS -->
+  <div class="panel" id="panel-qa-insights">
+    <div class="filters">
+      <select id="qaInsightsPeriod" onchange="loadQaInsights()">
+        <option value="7">Ultimos 7 dias</option>
+        <option value="14">Ultimos 14 dias</option>
+        <option value="30" selected>Ultimos 30 dias</option>
+        <option value="90">Ultimos 90 dias</option>
+      </select>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="stats-grid" id="qaKpiCards"></div>
+
+    <div class="grid-2">
+      <!-- Reprovacoes por Motivo -->
+      <div class="table-wrapper" style="padding:16px;">
+        <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">Reprovacoes por Motivo</h3>
+        <div id="qaByReasonChart" class="bar-chart"></div>
+      </div>
+
+      <!-- Auditorias por Auditor -->
+      <div class="table-wrapper" style="padding:16px;">
+        <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">Auditorias por Auditor</h3>
+        <div id="qaByAuditorChart"></div>
+      </div>
+    </div>
+
+    <!-- Volume por Dia -->
+    <div class="table-wrapper" style="padding:16px; margin-top:16px;">
+      <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">Volume de Auditorias por Dia</h3>
+      <div id="qaByDayChart" class="bar-chart"></div>
+    </div>
+
+    <!-- Reprovacoes Recentes -->
+    <div class="table-wrapper" style="margin-top:16px;">
+      <div style="padding:16px 16px 8px;">
+        <h3 style="font-size:15px; font-weight:600;">Reprovacoes Recentes</h3>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Lead</th>
+            <th>Motivo</th>
+            <th>Observacoes</th>
+            <th>Auditor</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody id="qaRejectionsBody"></tbody>
+      </table>
+    </div>
   </div>
 
   <!-- HEALTH / SAUDE -->
@@ -669,7 +727,7 @@
   async function refreshAll() {
     setStatus('loading', 'Carregando...');
     try {
-      await Promise.all([loadStats(), loadSessions(), loadSmartFields(), loadEvents(), loadKpis(), loadHealth(), loadAnalytics()]);
+      await Promise.all([loadStats(), loadSessions(), loadSmartFields(), loadEvents(), loadKpis(), loadHealth(), loadAnalytics(), loadQaInsights()]);
       setStatus('ok', 'Atualizado ' + new Date().toLocaleTimeString('pt-BR'));
     } catch (err) {
       setStatus('error', 'Erro: ' + err.message);
@@ -790,7 +848,7 @@
     try { renderInsights(data); } catch (e) { console.error('[insights render]', e); }
   }
 
-  let currentAuditRating = 0;
+  let currentAuditApproved = null;
 
   function renderInsights(data) {
     const a = data.audit || {};
@@ -899,11 +957,11 @@
       </tr></thead>
       <tbody>${items.map((c, i) => {
         const done = !!c.audited;
-        const rowStyle = done ? 'background:#f0fdf4;' : '';
-        const ratingStars = c.audited ? '★'.repeat(c.audited.bot_rating || 0) + '☆'.repeat(5 - (c.audited.bot_rating || 0)) : '';
+        const rowStyle = done ? (c.audited.approved ? 'background:#f0fdf4;' : 'background:#fef2f2;') : '';
+        const auditLabel = done ? (c.audited.approved ? '<span style="color:#16a34a;">Aprovado</span>' : '<span style="color:#dc2626;">Reprovado — ' + (c.audited.rejection_reason || c.audited.issue_category || '?') + '</span>') : '';
         return `<tr style="${rowStyle}">
-          <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:${done ? '#dcfce7' : scoreBg(c.score)}; color:${done ? '#16a34a' : scoreColor(c.score)};">${done ? '✓' : '#' + (i + 1)}</span></td>
-          <td><strong>${c.conversation_title || c.conversation_id?.substring(0, 12) + '...' || '-'}</strong>${done ? '<br><span style="font-size:11px; color:#16a34a;">' + ratingStars + ' — ' + (c.audited.issue_category || 'ok') + '</span>' : ''}</td>
+          <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:${done ? (c.audited.approved ? '#dcfce7' : '#fee2e2') : scoreBg(c.score)}; color:${done ? (c.audited.approved ? '#16a34a' : '#dc2626') : scoreColor(c.score)};">${done ? (c.audited.approved ? '✓' : '✗') : '#' + (i + 1)}</span></td>
+          <td><strong>${c.conversation_title || c.conversation_id?.substring(0, 12) + '...' || '-'}</strong>${done ? '<br><span style="font-size:11px;">' + auditLabel + '</span>' : ''}</td>
           <td><span class="tag tag-${c.status || 'open'}">${statusLabel(c.status)}</span>${c.forward_type ? ' <span class="tag tag-forwarded">' + c.forward_type + '</span>' : ''}</td>
           <td style="font-size:12px; color:#374151; max-width:280px;">${c.reasons.join(' / ')}</td>
           <td style="white-space:nowrap; font-size:12px;">${fmtDate(c.created_at)}</td>
@@ -918,35 +976,63 @@
 
   // Audit modal
   function openAuditModal(convId, auditType) {
-    currentAuditRating = 0;
+    currentAuditApproved = null;
     document.getElementById('auditConvId').value = convId;
     document.getElementById('auditType').value = auditType;
-    document.getElementById('auditCategory').value = '';
+    document.getElementById('auditRejectionReason').value = '';
+    document.getElementById('auditRejectionDetail').value = '';
     document.getElementById('auditNotes').value = '';
-    document.getElementById('auditPromptAction').value = '';
     document.getElementById('auditBy').value = localStorage.getItem('audit_user') || '';
     document.getElementById('auditSubmitStatus').textContent = '';
-    document.querySelectorAll('#auditRatingBtns button').forEach(b => { b.style.background = ''; b.style.color = ''; });
+    document.getElementById('rejectionReasonGroup').style.display = 'none';
+    document.getElementById('rejectionDetailGroup').style.display = 'none';
+    document.getElementById('notesRequired').style.display = 'none';
+    document.getElementById('approvedYes').style.background = '';
+    document.getElementById('approvedYes').style.color = '';
+    document.getElementById('approvedNo').style.background = '';
+    document.getElementById('approvedNo').style.color = '';
     document.getElementById('auditModal').classList.add('active');
   }
   function closeAuditModal() { document.getElementById('auditModal').classList.remove('active'); }
   document.getElementById('auditModal')?.addEventListener('click', (e) => { if (e.target.classList.contains('modal-overlay')) closeAuditModal(); });
 
-  function setAuditRating(r) {
-    currentAuditRating = r;
-    document.querySelectorAll('#auditRatingBtns button').forEach(b => {
-      const br = parseInt(b.dataset.r);
-      if (br <= r) { b.style.background = '#7c3aed'; b.style.color = '#fff'; }
-      else { b.style.background = ''; b.style.color = ''; }
-    });
+  function setAuditApproved(val) {
+    currentAuditApproved = val;
+    document.getElementById('approvedYes').style.background = val ? '#16a34a' : '';
+    document.getElementById('approvedYes').style.color = val ? '#fff' : '';
+    document.getElementById('approvedNo').style.background = !val ? '#dc2626' : '';
+    document.getElementById('approvedNo').style.color = !val ? '#fff' : '';
+    document.getElementById('rejectionReasonGroup').style.display = val ? 'none' : 'block';
+    document.getElementById('notesRequired').style.display = val ? 'none' : 'inline';
+    if (val) {
+      document.getElementById('rejectionReasonGroup').style.display = 'none';
+      document.getElementById('rejectionDetailGroup').style.display = 'none';
+      document.getElementById('auditRejectionReason').value = '';
+      document.getElementById('auditRejectionDetail').value = '';
+    }
+  }
+
+  function toggleOutroField() {
+    const reason = document.getElementById('auditRejectionReason').value;
+    document.getElementById('rejectionDetailGroup').style.display = reason === 'outro' ? 'block' : 'none';
+    if (reason !== 'outro') document.getElementById('auditRejectionDetail').value = '';
   }
 
   async function submitAudit() {
     const convId = document.getElementById('auditConvId').value;
     const auditType = document.getElementById('auditType').value;
-    const auditor = document.getElementById('auditBy').value.trim();
-    if (!currentAuditRating) { document.getElementById('auditSubmitStatus').textContent = 'Selecione uma nota'; return; }
-    if (!auditor) { document.getElementById('auditSubmitStatus').textContent = 'Informe seu nome'; return; }
+    const auditor = document.getElementById('auditBy').value;
+    const approved = currentAuditApproved;
+    const rejectionReason = document.getElementById('auditRejectionReason').value || null;
+    const rejectionDetail = document.getElementById('auditRejectionDetail').value.trim() || null;
+    const notes = document.getElementById('auditNotes').value.trim() || null;
+
+    if (approved === null) { document.getElementById('auditSubmitStatus').textContent = 'Selecione Aprovado ou Nao'; return; }
+    if (!auditor) { document.getElementById('auditSubmitStatus').textContent = 'Selecione seu nome'; return; }
+    if (!approved && !rejectionReason) { document.getElementById('auditSubmitStatus').textContent = 'Selecione o motivo da reprovacao'; return; }
+    if (!approved && rejectionReason === 'outro' && !rejectionDetail) { document.getElementById('auditSubmitStatus').textContent = 'Detalhe o motivo da reprovacao'; return; }
+    if (!approved && !notes) { document.getElementById('auditSubmitStatus').textContent = 'Observacoes sao obrigatorias quando reprovado'; return; }
+
     localStorage.setItem('audit_user', auditor);
     const btn = document.getElementById('auditSubmitBtn');
     btn.disabled = true; btn.textContent = 'Salvando...';
@@ -957,10 +1043,10 @@
         body: JSON.stringify({
           conversation_id: convId,
           audit_type: auditType,
-          bot_rating: currentAuditRating,
-          issue_category: document.getElementById('auditCategory').value || null,
-          notes: document.getElementById('auditNotes').value || null,
-          prompt_action: document.getElementById('auditPromptAction').value || null,
+          approved,
+          rejection_reason: rejectionReason,
+          rejection_detail: rejectionDetail,
+          notes,
           audited_by: auditor,
         }),
       });
@@ -970,6 +1056,90 @@
       document.getElementById('auditSubmitStatus').textContent = 'Erro: ' + e.message;
       document.getElementById('auditSubmitStatus').style.color = '#dc2626';
     } finally { btn.disabled = false; btn.textContent = 'Salvar Auditoria'; }
+  }
+
+  // ====== QA Insights ======
+  async function loadQaInsights() {
+    const days = document.getElementById('qaInsightsPeriod').value;
+    let data;
+    try {
+      data = await api('/api/kpis?view=qa-insights&days=' + days);
+    } catch (e) {
+      console.warn('[qa-insights] failed to load:', e);
+      return;
+    }
+    try { renderQaInsights(data); } catch (e) { console.error('[qa-insights render]', e); }
+  }
+
+  function renderQaInsights(data) {
+    const t = data.totals || {};
+    const approvalColor = (t.approval_rate || 0) >= 80 ? '#16a34a' : (t.approval_rate || 0) >= 50 ? '#f59e0b' : '#dc2626';
+
+    // KPI Cards
+    document.getElementById('qaKpiCards').innerHTML = [
+      { label: 'Total Auditorias', value: t.total || 0, sub: 'no periodo' },
+      { label: 'Aprovados', value: t.approved || 0, sub: '', color: '#16a34a' },
+      { label: 'Reprovados', value: t.rejected || 0, sub: '', color: '#dc2626' },
+      { label: 'Taxa de Aprovacao', value: (t.approval_rate || 0) + '%', sub: '', color: approvalColor },
+    ].map(c => `
+      <div class="stat-card">
+        <div class="label">${c.label}</div>
+        <div class="value" ${c.color ? 'style="color:' + c.color + '"' : ''}>${c.value}</div>
+        ${c.sub ? `<div class="sub">${c.sub}</div>` : ''}
+      </div>
+    `).join('');
+
+    // By Reason chart
+    const reasons = data.byReason || [];
+    const maxR = Math.max(...reasons.map(r => r.count), 1);
+    document.getElementById('qaByReasonChart').innerHTML = reasons.length > 0 ? reasons.map(r => {
+      const pct = Math.round((r.count / maxR) * 100);
+      return `<div class="bar-row"><span class="bar-label">${r.label}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:#dc2626;"><span>${r.count}</span></div></div></div>`;
+    }).join('') : '<div class="empty" style="padding:16px;">Nenhuma reprovacao no periodo</div>';
+
+    // By Auditor
+    const auditors = data.byAuditor || [];
+    document.getElementById('qaByAuditorChart').innerHTML = auditors.length > 0 ? `<table>
+      <thead><tr><th>Auditor</th><th>Total</th><th>Aprovados</th><th>Reprovados</th><th>Taxa Aprov.</th></tr></thead>
+      <tbody>${auditors.map(a => {
+        const rate = a.total > 0 ? Math.round((a.approved / a.total) * 100) : 0;
+        const rateColor = rate >= 80 ? '#16a34a' : rate >= 50 ? '#f59e0b' : '#dc2626';
+        return `<tr>
+          <td><strong>${a.audited_by}</strong></td>
+          <td>${a.total}</td>
+          <td style="color:#16a34a;">${a.approved}</td>
+          <td style="color:#dc2626;">${a.rejected}</td>
+          <td style="color:${rateColor}; font-weight:600;">${rate}%</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>` : '<div class="empty" style="padding:16px;">Nenhuma auditoria no periodo</div>';
+
+    // By Day chart
+    const days = data.byDay || [];
+    const maxD = Math.max(...days.map(d => d.total), 1);
+    document.getElementById('qaByDayChart').innerHTML = days.length > 0 ? days.map(d => {
+      const pct = Math.round((d.total / maxD) * 100);
+      const rejPct = d.total > 0 ? Math.round((d.rejected / d.total) * 100) : 0;
+      const dayLabel = new Date(d.day).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      return `<div class="bar-row"><span class="bar-label">${dayLabel}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;"><span>${d.approved} aprov. / ${d.rejected} reprov.</span></div></div></div>`;
+    }).join('') : '<div class="empty" style="padding:16px;">Sem dados no periodo</div>';
+
+    // Recent Rejections
+    const rejections = data.recentRejections || [];
+    const reasonLabels = {
+      tom: 'Tom da conversa', precisao: 'Precisao', fluxo: 'Fluxo',
+      captura_dados: 'Captura de dados', escalacao: 'Escalacao incorreta',
+      informacao_errada: 'Info errada', nao_entendeu: 'Nao entendeu', outro: 'Outro',
+    };
+    document.getElementById('qaRejectionsBody').innerHTML = rejections.length > 0 ? rejections.map(r => `
+      <tr>
+        <td><strong>${r.conversation_title || r.conversation_id?.substring(0, 12) + '...' || '-'}</strong></td>
+        <td><span class="tag tag-forwarded">${reasonLabels[r.rejection_reason] || r.rejection_reason || '-'}</span>${r.rejection_detail ? '<br><span style="font-size:11px; color:#6b7280;">' + r.rejection_detail + '</span>' : ''}</td>
+        <td style="font-size:12px; max-width:300px;">${r.notes || '-'}</td>
+        <td>${r.audited_by || '-'}</td>
+        <td style="white-space:nowrap; font-size:12px;">${fmtDate(r.audited_at)}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="5" class="empty" style="padding:20px; text-align:center;">Nenhuma reprovacao no periodo</td></tr>';
   }
 
   // Render distribution bars

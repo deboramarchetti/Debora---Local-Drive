@@ -27,6 +27,10 @@ export default async function handler(req, res) {
       return handleInsights(req, res, days);
     }
 
+    if (req.query.view === 'qa-insights') {
+      return handleQaInsights(req, res, days);
+    }
+
     return handleKpis(req, res, days);
   } catch (err) {
     console.error('[kpis]', err);
@@ -36,14 +40,17 @@ export default async function handler(req, res) {
 
 // ===== Salvar auditoria =====
 async function handleSaveAudit(req, res) {
-  const { conversation_id, audit_type, bot_rating, issue_category, notes, prompt_action, audited_by } = req.body || {};
+  const { conversation_id, audit_type, approved, rejection_reason, rejection_detail, notes, audited_by } = req.body || {};
   if (!conversation_id || !audit_type) {
     return res.status(400).json({ error: 'conversation_id e audit_type obrigatorios' });
   }
+  if (approved === undefined || approved === null) {
+    return res.status(400).json({ error: 'campo approved obrigatorio' });
+  }
 
   await sql`
-    INSERT INTO audit_log (conversation_id, audit_type, bot_rating, issue_category, notes, prompt_action, audited_by)
-    VALUES (${conversation_id}, ${audit_type}, ${bot_rating || null}, ${issue_category || null}, ${notes || null}, ${prompt_action || null}, ${audited_by || null})
+    INSERT INTO audit_log (conversation_id, audit_type, approved, rejection_reason, rejection_detail, issue_category, notes, audited_by)
+    VALUES (${conversation_id}, ${audit_type}, ${approved}, ${rejection_reason || null}, ${rejection_detail || null}, ${rejection_reason || null}, ${notes || null}, ${audited_by || null})
   `;
 
   return res.status(200).json({ ok: true });
@@ -211,7 +218,7 @@ async function handleInsights(req, res, days) {
         LIMIT 200`,
 
     // Auditorias ja realizadas nos ultimos 3 dias
-    sql`SELECT conversation_id, audit_type, bot_rating, issue_category, notes, prompt_action, audited_by, audited_at
+    sql`SELECT conversation_id, audit_type, bot_rating, issue_category, notes, prompt_action, audited_by, audited_at, approved, rejection_reason, rejection_detail
         FROM audit_log
         WHERE audited_at > NOW() - INTERVAL '3 days'`,
   ]);
@@ -289,6 +296,10 @@ async function handleInsights(req, res, days) {
       audited: audited ? {
         bot_rating: audited.bot_rating,
         issue_category: audited.issue_category,
+        approved: audited.approved,
+        rejection_reason: audited.rejection_reason,
+        rejection_detail: audited.rejection_detail,
+        notes: audited.notes,
         audited_by: audited.audited_by,
         audited_at: audited.audited_at,
       } : null,
@@ -337,5 +348,90 @@ async function handleInsights(req, res, days) {
       critical: criticalSample,
       random: randomSample,
     },
+  });
+}
+
+// ===== QA Insights consolidados =====
+async function handleQaInsights(req, res, days) {
+  const [
+    totals,
+    byReason,
+    byAuditor,
+    byDay,
+    recentRejections,
+  ] = await Promise.all([
+    sql`SELECT
+          COUNT(*)::int as total,
+          COUNT(*) FILTER (WHERE approved = true)::int as approved,
+          COUNT(*) FILTER (WHERE approved = false)::int as rejected,
+          CASE WHEN COUNT(*) > 0 THEN ROUND((COUNT(*) FILTER (WHERE approved = true)::numeric / COUNT(*)::numeric) * 100, 1) ELSE 0 END as approval_rate
+        FROM audit_log
+        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}`,
+
+    sql`SELECT
+          COALESCE(rejection_reason, issue_category, 'sem_motivo') as reason,
+          COUNT(*)::int as count
+        FROM audit_log
+        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND approved = false
+        GROUP BY COALESCE(rejection_reason, issue_category, 'sem_motivo')
+        ORDER BY count DESC`,
+
+    sql`SELECT
+          audited_by,
+          COUNT(*)::int as total,
+          COUNT(*) FILTER (WHERE approved = true)::int as approved,
+          COUNT(*) FILTER (WHERE approved = false)::int as rejected
+        FROM audit_log
+        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND audited_by IS NOT NULL
+        GROUP BY audited_by
+        ORDER BY total DESC`,
+
+    sql`SELECT
+          DATE(audited_at) as day,
+          COUNT(*)::int as total,
+          COUNT(*) FILTER (WHERE approved = true)::int as approved,
+          COUNT(*) FILTER (WHERE approved = false)::int as rejected
+        FROM audit_log
+        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY DATE(audited_at)
+        ORDER BY day DESC`,
+
+    sql`SELECT
+          al.conversation_id,
+          s.conversation_title,
+          al.rejection_reason,
+          al.rejection_detail,
+          al.notes,
+          al.audited_by,
+          al.audited_at
+        FROM audit_log al
+        LEFT JOIN sessions s ON s.conversation_id = al.conversation_id
+        WHERE al.audited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND al.approved = false
+        ORDER BY al.audited_at DESC
+        LIMIT 50`,
+  ]);
+
+  const reasonLabels = {
+    tom: 'Tom da conversa',
+    precisao: 'Precisao das respostas',
+    fluxo: 'Fluxo da conversa',
+    captura_dados: 'Captura de dados',
+    escalacao: 'Escalacao incorreta',
+    informacao_errada: 'Informacao errada',
+    nao_entendeu: 'Bot nao entendeu',
+    outro: 'Outro',
+    sem_motivo: 'Sem motivo informado',
+  };
+
+  return res.status(200).json({
+    period: { days },
+    totals: totals[0],
+    byReason: byReason.map(r => ({ ...r, label: reasonLabels[r.reason] || r.reason })),
+    byAuditor,
+    byDay,
+    recentRejections,
   });
 }

@@ -80,9 +80,17 @@ export async function ensureTables() {
       notes           TEXT,
       prompt_action   TEXT,
       audited_by      TEXT,
+      approved        BOOLEAN,
+      rejection_reason TEXT,
+      rejection_detail TEXT,
       audited_at      TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+
+  // Migrate: add new columns if they don't exist (safe for existing tables)
+  await sql`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS approved BOOLEAN`;
+  await sql`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS rejection_reason TEXT`;
+  await sql`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS rejection_detail TEXT`;
 
   await sql`CREATE INDEX IF NOT EXISTS idx_audit_conv ON audit_log(conversation_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)`;
