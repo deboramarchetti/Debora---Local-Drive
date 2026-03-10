@@ -1148,21 +1148,41 @@
 
   function renderQaInsights(data) {
     const t = data.totals || {};
-    const approvalColor = (t.approval_rate || 0) >= 80 ? '#16a34a' : (t.approval_rate || 0) >= 50 ? '#f59e0b' : '#dc2626';
+    const bt = data.byType || {};
+    const crit = bt.critical || { total: 0, approved: 0, rejected: 0, approval_rate: 0 };
+    const rand = bt.random || { total: 0, approved: 0, rejected: 0, approval_rate: 0 };
+    const rateColor = (r) => r >= 80 ? '#16a34a' : r >= 50 ? '#f59e0b' : '#dc2626';
 
-    // KPI Cards
-    document.getElementById('qaKpiCards').innerHTML = [
-      { label: 'Total Auditorias', value: t.total || 0, sub: 'no periodo' },
-      { label: 'Aprovados', value: t.approved || 0, sub: '', color: '#16a34a' },
-      { label: 'Reprovados', value: t.rejected || 0, sub: '', color: '#dc2626' },
-      { label: 'Taxa de Aprovacao', value: (t.approval_rate || 0) + '%', sub: '', color: approvalColor },
-    ].map(c => `
-      <div class="stat-card">
-        <div class="label">${c.label}</div>
-        <div class="value" ${c.color ? 'style="color:' + c.color + '"' : ''}>${c.value}</div>
-        ${c.sub ? `<div class="sub">${c.sub}</div>` : ''}
-      </div>
-    `).join('');
+    function scoreCard(label, typeData, accent) {
+      const rate = parseFloat(typeData.approval_rate) || 0;
+      return `
+        <div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); border-top:3px solid ${accent}; flex:1; min-width:200px;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:#6b7280; margin-bottom:8px;">${label}</div>
+          <div style="font-size:36px; font-weight:800; color:${rateColor(rate)}; line-height:1;">${rate}%</div>
+          <div style="font-size:11px; color:#9ca3af; margin-top:4px;">taxa de aprovacao</div>
+          <div style="display:flex; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid #f3f4f6;">
+            <div style="text-align:center; flex:1;">
+              <div style="font-size:18px; font-weight:700; color:#374151;">${typeData.total || 0}</div>
+              <div style="font-size:10px; color:#9ca3af;">total</div>
+            </div>
+            <div style="text-align:center; flex:1;">
+              <div style="font-size:18px; font-weight:700; color:#16a34a;">${typeData.approved || 0}</div>
+              <div style="font-size:10px; color:#9ca3af;">aprovados</div>
+            </div>
+            <div style="text-align:center; flex:1;">
+              <div style="font-size:18px; font-weight:700; color:#dc2626;">${typeData.rejected || 0}</div>
+              <div style="font-size:10px; color:#9ca3af;">reprovados</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    document.getElementById('qaKpiCards').innerHTML = `
+      <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
+        ${scoreCard('Nota Geral', t, '#7c3aed')}
+        ${scoreCard('Casos Criticos', crit, '#dc2626')}
+        ${scoreCard('Amostra Aleatoria', rand, '#3b82f6')}
+      </div>`;
 
     // By Reason chart
     const reasons = data.byReason || [];

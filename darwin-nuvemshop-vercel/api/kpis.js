@@ -363,6 +363,7 @@ async function handleInsights(req, res, days) {
 async function handleQaInsights(req, res, days) {
   const [
     totals,
+    totalsByType,
     byReason,
     byAuditor,
     byDay,
@@ -375,6 +376,17 @@ async function handleQaInsights(req, res, days) {
           CASE WHEN COUNT(*) > 0 THEN ROUND((COUNT(*) FILTER (WHERE approved = true)::numeric / COUNT(*)::numeric) * 100, 1) ELSE 0 END as approval_rate
         FROM audit_log
         WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}`,
+
+    sql`SELECT
+          audit_type,
+          COUNT(*)::int as total,
+          COUNT(*) FILTER (WHERE approved = true)::int as approved,
+          COUNT(*) FILTER (WHERE approved = false)::int as rejected,
+          CASE WHEN COUNT(*) > 0 THEN ROUND((COUNT(*) FILTER (WHERE approved = true)::numeric / COUNT(*)::numeric) * 100, 1) ELSE 0 END as approval_rate
+        FROM audit_log
+        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY audit_type
+        ORDER BY audit_type`,
 
     sql`SELECT
           COALESCE(rejection_reason, issue_category, 'sem_motivo') as reason,
@@ -434,9 +446,15 @@ async function handleQaInsights(req, res, days) {
     sem_motivo: 'Sem motivo informado',
   };
 
+  const byType = {};
+  for (const row of totalsByType) {
+    byType[row.audit_type] = row;
+  }
+
   return res.status(200).json({
     period: { days },
     totals: totals[0],
+    byType,
     byReason: byReason.map(r => ({ ...r, label: reasonLabels[r.reason] || r.reason })),
     byAuditor,
     byDay,
