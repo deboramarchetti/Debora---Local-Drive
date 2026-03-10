@@ -198,17 +198,18 @@
     }
     .login-box h2 { font-size: 18px; margin-bottom: 4px; color: #1a1a2e; }
     .login-box p { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
-    .login-box input {
-      width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px;
-      font-size: 14px; margin-bottom: 12px;
+    .login-error { color: #dc2626; font-size: 12px; margin-top: 12px; display: none; }
+    .google-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 24px; background: #fff; border: 1px solid #d1d5db;
+      border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;
+      color: #374151; transition: all .15s;
     }
-    .login-box input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.15); }
-    .login-box .login-btn {
-      width: 100%; padding: 10px; background: #7c3aed; color: #fff; border: none;
-      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
-    }
-    .login-box .login-btn:hover { background: #6d28d9; }
-    .login-error { color: #dc2626; font-size: 12px; margin-top: 8px; display: none; }
+    .google-btn:hover { background: #f9fafb; border-color: #9ca3af; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .google-btn svg { width: 18px; height: 18px; }
+    .user-info { display: flex; align-items: center; gap: 8px; }
+    .user-avatar { width: 28px; height: 28px; border-radius: 50%; }
+    .user-name { font-size: 13px; color: #d1d5db; }
 
     /* Pulse animation for last event */
     .pulse { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
@@ -223,6 +224,7 @@
       .grid-2 { grid-template-columns: 1fr; }
     }
   </style>
+  <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
 
@@ -230,12 +232,9 @@
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
     <h2>Darwin + Nuvemshop</h2>
-    <p>Digite a senha para acessar o dashboard</p>
-    <form onsubmit="return tryLogin(event)">
-      <input type="password" id="loginPassword" placeholder="Senha" autocomplete="current-password" autofocus>
-      <button type="submit" class="login-btn">Entrar</button>
-    </form>
-    <div class="login-error" id="loginError">Senha incorreta</div>
+    <p>Entre com seu email corporativo</p>
+    <div id="googleBtnContainer"></div>
+    <div class="login-error" id="loginError"></div>
   </div>
 </div>
 
@@ -245,6 +244,10 @@
     <span class="status-dot loading" id="statusDot"></span>
     <span id="statusText">Carregando...</span>
     <button class="btn" onclick="refreshAll()">Atualizar</button>
+    <div class="user-info" id="userInfo" style="display:none;">
+      <img class="user-avatar" id="userAvatar" src="" alt="" referrerpolicy="no-referrer">
+      <span class="user-name" id="userName"></span>
+    </div>
     <button class="btn" onclick="logout()">Sair</button>
   </div>
 </div>
@@ -679,47 +682,114 @@
 <script>
   // ====== State ======
   let currentPage = { sessions: 1, events: 1, sf: 1 };
-  let dashPassword = sessionStorage.getItem('dash_password') || '';
+  let currentUser = null;
 
-  // ====== Login ======
-  async function tryLogin(e) {
-    e.preventDefault();
-    const pw = document.getElementById('loginPassword').value;
+  // ====== Google SSO ======
+  function handleGoogleCredential(response) {
     const errEl = document.getElementById('loginError');
     errEl.style.display = 'none';
-    try {
-      const res = await fetch('/api/stats', { headers: { 'x-dashboard-password': pw } });
-      if (res.status === 401) { errEl.style.display = 'block'; return false; }
-      dashPassword = pw;
-      sessionStorage.setItem('dash_password', pw);
-      document.getElementById('loginOverlay').classList.add('hidden');
-      refreshAll();
-    } catch {
-      errEl.textContent = 'Erro de conexao';
-      errEl.style.display = 'block';
-    }
-    return false;
+    fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: response.credential }),
+    })
+      .then(r => r.json().then(data => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          errEl.textContent = data.error || 'Erro ao autenticar';
+          errEl.style.display = 'block';
+          return;
+        }
+        currentUser = data.user;
+        onLoginSuccess();
+      })
+      .catch(() => {
+        errEl.textContent = 'Erro de conexao';
+        errEl.style.display = 'block';
+      });
   }
 
-  function logout() {
-    dashPassword = '';
-    sessionStorage.removeItem('dash_password');
+  let googleClientId = '';
+
+  async function initGoogleButton() {
+    // Fetch client ID from API
+    if (!googleClientId) {
+      try {
+        const cfg = await fetch('/api/auth/config').then(r => r.json());
+        googleClientId = cfg.googleClientId;
+      } catch { return; }
+    }
+    if (!googleClientId) return;
+    // Wait for Google GSI library to load
+    if (typeof google === 'undefined' || !google.accounts) {
+      setTimeout(initGoogleButton, 200);
+      return;
+    }
+    google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: handleGoogleCredential,
+      auto_select: true,
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('googleBtnContainer'),
+      { theme: 'outline', size: 'large', text: 'signin_with', locale: 'pt-BR', width: 280 }
+    );
+    google.accounts.id.prompt();
+  }
+
+  function onLoginSuccess() {
+    document.getElementById('loginOverlay').classList.add('hidden');
+    if (currentUser) {
+      const userInfo = document.getElementById('userInfo');
+      const avatar = document.getElementById('userAvatar');
+      const name = document.getElementById('userName');
+      if (currentUser.picture) { avatar.src = currentUser.picture; }
+      else { avatar.style.display = 'none'; }
+      name.textContent = currentUser.name || currentUser.email;
+      userInfo.style.display = 'flex';
+      // Auto-fill auditor name
+      const firstName = (currentUser.name || '').split(' ')[0];
+      if (firstName) {
+        const auditBy = document.getElementById('auditBy');
+        if (auditBy) {
+          for (const opt of auditBy.options) {
+            if (opt.value.toLowerCase() === firstName.toLowerCase()) {
+              auditBy.value = opt.value;
+              break;
+            }
+          }
+        }
+      }
+    }
+    refreshAll();
+  }
+
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    currentUser = null;
+    document.getElementById('userInfo').style.display = 'none';
     document.getElementById('loginOverlay').classList.remove('hidden');
-    document.getElementById('loginPassword').value = '';
+    if (typeof google !== 'undefined' && google.accounts) {
+      google.accounts.id.disableAutoSelect();
+    }
   }
 
   // ====== Init ======
   document.addEventListener('DOMContentLoaded', async () => {
     setupTabs();
     showUrls();
-    if (dashPassword) {
-      try {
-        const res = await fetch('/api/stats', { headers: { 'x-dashboard-password': dashPassword } });
-        if (res.status === 401) { logout(); return; }
-        document.getElementById('loginOverlay').classList.add('hidden');
-        refreshAll();
-      } catch { logout(); }
-    }
+    // Check if already logged in via cookie
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        currentUser = data.user;
+        onLoginSuccess();
+        return;
+      }
+    } catch {}
+    // Not logged in — show Google button
+    initGoogleButton();
   });
 
   // ====== Tabs ======
@@ -1037,7 +1107,18 @@
     document.querySelectorAll('#auditRejectionReasons input[type=checkbox]').forEach(cb => cb.checked = false);
     document.getElementById('auditRejectionDetail').value = '';
     document.getElementById('auditNotes').value = '';
-    document.getElementById('auditBy').value = localStorage.getItem('audit_user') || '';
+    // Auto-fill auditor from Google user or localStorage
+    const firstName = currentUser ? (currentUser.name || '').split(' ')[0] : '';
+    const auditByEl = document.getElementById('auditBy');
+    let matched = false;
+    if (firstName) {
+      for (const opt of auditByEl.options) {
+        if (opt.value.toLowerCase() === firstName.toLowerCase()) {
+          auditByEl.value = opt.value; matched = true; break;
+        }
+      }
+    }
+    if (!matched) auditByEl.value = localStorage.getItem('audit_user') || '';
     document.getElementById('auditSubmitStatus').textContent = '';
     document.getElementById('rejectionReasonGroup').style.display = 'none';
     document.getElementById('rejectionDetailGroup').style.display = 'none';
@@ -1548,8 +1629,8 @@
   function exportCSV(type) {
     const url = `/api/export?type=${type}`;
     const a = document.createElement('a');
-    // Add auth via fetch then download
-    fetch(url, { headers: { 'x-dashboard-password': dashPassword } })
+    // Download via fetch (auth via cookie)
+    fetch(url)
       .then(r => {
         if (!r.ok) throw new Error('Erro ao exportar');
         return r.blob();
@@ -1610,8 +1691,7 @@
 
   // ====== Helpers ======
   async function api(path, opts = {}) {
-    const headers = { ...(opts.headers || {}), 'x-dashboard-password': dashPassword };
-    const res = await fetch(path, { ...opts, headers });
+    const res = await fetch(path, opts);
     if (res.status === 401) { logout(); throw new Error('Nao autorizado'); }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
