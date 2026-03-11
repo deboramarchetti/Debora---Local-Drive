@@ -740,10 +740,10 @@
       else { avatar.style.display = 'none'; }
       name.textContent = currentUser.name || currentUser.email;
       userInfo.style.display = 'flex';
-      // Auto-fill auditor name from Google account
+      // Auto-fill auditor full name from Google account
       const auditBy = document.getElementById('auditBy');
       if (auditBy && currentUser.name) {
-        auditBy.value = currentUser.name.split(' ')[0];
+        auditBy.value = currentUser.name;
       }
     }
     refreshAll();
@@ -1092,9 +1092,9 @@
     document.querySelectorAll('#auditRejectionReasons input[type=checkbox]').forEach(cb => cb.checked = false);
     document.getElementById('auditRejectionDetail').value = '';
     document.getElementById('auditNotes').value = '';
-    // Auto-fill auditor from Google account
+    // Auto-fill auditor full name from Google account
     const auditByEl = document.getElementById('auditBy');
-    auditByEl.value = currentUser ? (currentUser.name || '').split(' ')[0] : '';
+    auditByEl.value = currentUser ? (currentUser.name || '') : '';
     document.getElementById('auditSubmitStatus').textContent = '';
     document.getElementById('rejectionReasonGroup').style.display = 'none';
     document.getElementById('rejectionDetailGroup').style.display = 'none';
