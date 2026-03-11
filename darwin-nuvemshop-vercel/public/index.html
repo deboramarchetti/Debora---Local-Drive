@@ -383,15 +383,8 @@
       </div>
 
       <div style="margin-bottom:16px;">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Seu nome</label>
-        <select id="auditBy" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;">
-          <option value="">Selecione...</option>
-          <option value="Thais">Thais</option>
-          <option value="Renato">Renato</option>
-          <option value="Debora">Debora</option>
-          <option value="Luiz">Luiz</option>
-          <option value="Gustavo">Gustavo</option>
-        </select>
+        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Auditor</label>
+        <input type="text" id="auditBy" readonly style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; background:#f3f4f6; color:#374151; cursor:default;" />
       </div>
 
       <div style="display:flex; gap:8px;">
@@ -747,18 +740,10 @@
       else { avatar.style.display = 'none'; }
       name.textContent = currentUser.name || currentUser.email;
       userInfo.style.display = 'flex';
-      // Auto-fill auditor name
-      const firstName = (currentUser.name || '').split(' ')[0];
-      if (firstName) {
-        const auditBy = document.getElementById('auditBy');
-        if (auditBy) {
-          for (const opt of auditBy.options) {
-            if (opt.value.toLowerCase() === firstName.toLowerCase()) {
-              auditBy.value = opt.value;
-              break;
-            }
-          }
-        }
+      // Auto-fill auditor name from Google account
+      const auditBy = document.getElementById('auditBy');
+      if (auditBy && currentUser.name) {
+        auditBy.value = currentUser.name.split(' ')[0];
       }
     }
     refreshAll();
@@ -1107,18 +1092,9 @@
     document.querySelectorAll('#auditRejectionReasons input[type=checkbox]').forEach(cb => cb.checked = false);
     document.getElementById('auditRejectionDetail').value = '';
     document.getElementById('auditNotes').value = '';
-    // Auto-fill auditor from Google user or localStorage
-    const firstName = currentUser ? (currentUser.name || '').split(' ')[0] : '';
+    // Auto-fill auditor from Google account
     const auditByEl = document.getElementById('auditBy');
-    let matched = false;
-    if (firstName) {
-      for (const opt of auditByEl.options) {
-        if (opt.value.toLowerCase() === firstName.toLowerCase()) {
-          auditByEl.value = opt.value; matched = true; break;
-        }
-      }
-    }
-    if (!matched) auditByEl.value = localStorage.getItem('audit_user') || '';
+    auditByEl.value = currentUser ? (currentUser.name || '').split(' ')[0] : '';
     document.getElementById('auditSubmitStatus').textContent = '';
     document.getElementById('rejectionReasonGroup').style.display = 'none';
     document.getElementById('rejectionDetailGroup').style.display = 'none';
@@ -1186,12 +1162,11 @@
     const notes = document.getElementById('auditNotes').value.trim() || null;
 
     if (approved === null) { document.getElementById('auditSubmitStatus').textContent = 'Selecione Aprovado ou Nao'; return; }
-    if (!auditor) { document.getElementById('auditSubmitStatus').textContent = 'Selecione seu nome'; return; }
+    if (!auditor) { document.getElementById('auditSubmitStatus').textContent = 'Erro: usuario nao identificado. Faca login novamente.'; return; }
     if (!approved && reasons.length === 0) { document.getElementById('auditSubmitStatus').textContent = 'Selecione ao menos um problema identificado'; return; }
     if (!approved && reasons.includes('outro') && !rejectionDetail) { document.getElementById('auditSubmitStatus').textContent = 'Detalhe o motivo da reprovacao'; return; }
     if (!approved && !notes) { document.getElementById('auditSubmitStatus').textContent = 'Observacoes sao obrigatorias quando reprovado'; return; }
 
-    localStorage.setItem('audit_user', auditor);
     const btn = document.getElementById('auditSubmitBtn');
     btn.disabled = true; btn.textContent = 'Salvando...';
     try {
