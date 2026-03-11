@@ -254,7 +254,7 @@
 
 <div class="tabs" id="tabs">
   <div class="tab active" data-panel="insights">Overview</div>
-  <div class="tab" data-panel="qa-insights">QA - Auditar + Insights</div>
+  <div class="tab" data-panel="qa-insights">QA Audits</div>
   <div class="tab" data-panel="performance">Performance SDR</div>
   <div class="tab" data-panel="sessions">Conversas <span class="badge" id="badge-sessions">0</span></div>
   <div class="tab" data-panel="smartfields">Smart Fields <span class="badge" id="badge-sf">0</span></div>
@@ -499,7 +499,7 @@
         <option value="30" selected>Ultimos 30 dias</option>
         <option value="90">Ultimos 90 dias</option>
       </select>
-      <span style="font-size:12px; color:#9ca3af; margin-left:8px;">Insights usa periodo selecionado. Auditorias sempre ultimos 3 dias.</span>
+      <span style="font-size:12px; color:#9ca3af; margin-left:8px;">Periodo para insights e auditorias.</span>
     </div>
 
     <!-- 1. Audit Progress Bar (3 dias) -->
@@ -508,19 +508,19 @@
     <!-- 2. Audit Insight Cards (sentimento, sem resposta, abandono) -->
     <div class="insight-grid" id="auditInsightCards" style="margin-bottom:16px;"></div>
 
-    <!-- 3. QA Criticos (3 dias) -->
+    <!-- 3. QA Criticos -->
     <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
       <div class="section-header">
-        <h3 style="font-size:15px; font-weight:600;">QA: Casos Criticos (3 dias)</h3>
+        <h3 style="font-size:20px; font-weight:700;">😱 QA: Casos Criticos</h3>
         <span style="font-size:12px; color:#9ca3af;">Conversas com problemas identificados — prioridade maxima</span>
       </div>
       <div id="auditCritical"></div>
     </div>
 
-    <!-- 4. QA Amostra Aleatoria (3 dias) -->
+    <!-- 4. QA Amostra Aleatoria -->
     <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
       <div class="section-header">
-        <h3 style="font-size:15px; font-weight:600;">QA: Amostra Aleatoria (3 dias)</h3>
+        <h3 style="font-size:20px; font-weight:700;">🎲 QA: Amostra Aleatoria</h3>
         <span style="font-size:12px; color:#9ca3af;">Amostra sem vies para avaliar qualidade geral do bot</span>
       </div>
       <div id="auditRandom"></div>
@@ -945,12 +945,13 @@
     const remaining = a.recommendedTotal - a.auditedCount;
     const pctDone = a.pctComplete || 0;
     const barColor = pctDone >= 80 ? '#16a34a' : pctDone >= 40 ? '#f59e0b' : '#dc2626';
-    document.getElementById('auditRecommendation').innerHTML = a.totalConversas3d > 0 ? `
+    const periodLabel = document.getElementById('qaInsightsPeriod').selectedOptions[0]?.text || 'periodo';
+    document.getElementById('auditRecommendation').innerHTML = (a.totalConversasPeriod || a.totalConversas3d || 0) > 0 ? `
       <div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); border-left:4px solid ${barColor};">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <div>
             <span style="font-size:20px; font-weight:700; color:#1a1a2e;">Auditar ${a.recommendedTotal} conversas</span>
-            <span style="font-size:13px; color:#6b7280; margin-left:8px;">(${a.criticalCount} criticas + ${a.randomCount} aleatorias) de ${a.totalConversas3d} nos ultimos 3 dias</span>
+            <span style="font-size:13px; color:#6b7280; margin-left:8px;">(${a.criticalCount} criticas + ${a.randomCount} aleatorias) de ${a.totalConversasPeriod || a.totalConversas3d} — ${periodLabel}</span>
           </div>
           <div style="text-align:right;">
             <span style="font-size:24px; font-weight:700; color:${barColor};">${a.auditedCount}/${a.recommendedTotal}</span>
@@ -962,7 +963,7 @@
         </div>
         <div style="font-size:11px; color:#9ca3af; margin-top:4px;">${pctDone}% concluido — meta: 60%+ do volume total auditado</div>
       </div>
-    ` : '<div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); text-align:center; color:#9ca3af;">Nenhuma conversa nos ultimos 3 dias</div>';
+    ` : '<div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); text-align:center; color:#9ca3af;">Nenhuma conversa no periodo selecionado</div>';
 
     // Audit insight cards (sentimento, sem resposta, abandono)
     const cards = [];
@@ -1197,8 +1198,8 @@
     document.getElementById('qaKpiCards').innerHTML = `
       <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
         ${scoreCard('Nota Geral', t, '#7c3aed')}
-        ${scoreCard('Casos Criticos', crit, '#dc2626')}
-        ${scoreCard('Amostra Aleatoria', rand, '#3b82f6')}
+        ${scoreCard('😱 Casos Criticos', crit, '#dc2626')}
+        ${scoreCard('🎲 Amostra Aleatoria', rand, '#3b82f6')}
       </div>`;
 
     // By Reason chart

@@ -152,9 +152,8 @@ async function handleKpis(req, res, days) {
 }
 
 // ===== Insights de negocio (view=insights) =====
-// Periodo fixo: 3 dias para QA, days para distribuicoes/graficos
+// Periodo: usa days selecionado pelo usuario para tudo (default 30)
 async function handleInsights(req, res, days) {
-  const auditDays = 3;
 
   const [
     totalResult,
@@ -169,9 +168,9 @@ async function handleInsights(req, res, days) {
     sql`SELECT COUNT(*)::int as total FROM sessions
         WHERE created_at > NOW() - INTERVAL '1 day' * ${days}`,
 
-    // Total conversas nos ultimos 3 dias (para calculo de amostra)
+    // Total conversas no periodo selecionado (para calculo de amostra)
     sql`SELECT COUNT(*)::int as total FROM sessions
-        WHERE created_at > NOW() - INTERVAL '3 days'`,
+        WHERE created_at > NOW() - INTERVAL '1 day' * ${days}`,
 
     sql`SELECT sf.field_name, sf.field_value, COUNT(*)::int as count
         FROM smart_fields sf
@@ -205,7 +204,7 @@ async function handleInsights(req, res, days) {
         GROUP BY EXTRACT(DOW FROM created_at)
         ORDER BY dow`,
 
-    // Conversas dos ultimos 3 dias com smart fields
+    // Conversas no periodo selecionado com smart fields
     sql`SELECT
           s.conversation_id,
           s.conversation_title,
@@ -219,20 +218,20 @@ async function handleInsights(req, res, days) {
             FILTER (WHERE sf.field_name IS NOT NULL), '[]') as fields
         FROM sessions s
         LEFT JOIN smart_fields sf ON sf.conversation_id = s.conversation_id
-        WHERE s.created_at > NOW() - INTERVAL '3 days'
+        WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
         GROUP BY s.id, s.conversation_id, s.conversation_title, s.status,
                  s.forward_type, s.forwarded_to, s.summary, s.created_at, s.closed_at
         ORDER BY s.created_at DESC
-        LIMIT 200`,
+        LIMIT 500`,
 
-    // Auditorias ja realizadas nos ultimos 3 dias
+    // Auditorias ja realizadas no periodo selecionado
     sql`SELECT conversation_id, audit_type, bot_rating, issue_category, notes, prompt_action, audited_by, audited_at, approved, rejection_reason, rejection_detail
         FROM audit_log
-        WHERE audited_at > NOW() - INTERVAL '3 days'`,
+        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}`,
   ]);
 
   const totalConversas = totalResult[0]?.total || 0;
-  const totalAudit3d = totalAuditResult[0]?.total || 0;
+  const totalAuditPeriod = totalAuditResult[0]?.total || 0;
 
   // Mapa de auditorias ja feitas
   const auditedMap = {};
@@ -315,7 +314,7 @@ async function handleInsights(req, res, days) {
   });
 
   // Calcular amostras
-  const recommendedTotal = calcSampleSize(totalAudit3d);
+  const recommendedTotal = calcSampleSize(totalAuditPeriod);
 
   // Criticos: score > 0, ordenados por score
   const criticalAll = allScored.filter(c => c.score > 0).sort((a, b) => b.score - a.score);
@@ -347,7 +346,7 @@ async function handleInsights(req, res, days) {
     hourlyPattern,
     weekdayPattern,
     audit: {
-      totalConversas3d: totalAudit3d,
+      totalConversasPeriod: totalAuditPeriod,
       recommendedTotal,
       criticalCount: criticalSample.length,
       randomCount: randomSample.length,
