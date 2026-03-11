@@ -388,12 +388,13 @@ async function handleQaInsights(req, res, days) {
         ORDER BY audit_type`,
 
     sql`SELECT
-          COALESCE(rejection_reason, issue_category, 'sem_motivo') as reason,
+          TRIM(reason_part) as reason,
           COUNT(*)::int as count
-        FROM audit_log
+        FROM audit_log,
+          LATERAL unnest(string_to_array(COALESCE(rejection_reason, issue_category, 'sem_motivo'), ',')) AS reason_part
         WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
           AND approved = false
-        GROUP BY COALESCE(rejection_reason, issue_category, 'sem_motivo')
+        GROUP BY TRIM(reason_part)
         ORDER BY count DESC`,
 
     sql`SELECT

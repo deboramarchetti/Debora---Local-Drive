@@ -107,6 +107,6 @@ export async function ensureTables() {
   await sql`CREATE INDEX IF NOT EXISTS idx_sf_conv ON smart_fields(conversation_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_daily_date ON daily_metrics(metric_date)`;
 
-  // Migrate: normalize auditor names to full names (one-time safe migration)
-  await sql`UPDATE audit_log SET audited_by = 'Renato Campeas' WHERE audited_by = 'Renato'`;
+  // Migrate: normalize auditor names (one-time safe migration)
+  await sql`UPDATE audit_log SET audited_by = 'Renato Campeas' WHERE audited_by IN ('Renato', 'Renato Campéas')`;
 }
