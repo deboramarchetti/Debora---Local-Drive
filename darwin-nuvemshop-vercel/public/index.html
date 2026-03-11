@@ -253,8 +253,7 @@
 </div>
 
 <div class="tabs" id="tabs">
-  <div class="tab active" data-panel="overview">Visao Geral</div>
-  <div class="tab" data-panel="insights">Insights</div>
+  <div class="tab active" data-panel="insights">Overview</div>
   <div class="tab" data-panel="qa-insights">QA - Auditar + Insights</div>
   <div class="tab" data-panel="performance">Performance SDR</div>
   <div class="tab" data-panel="sessions">Conversas <span class="badge" id="badge-sessions">0</span></div>
@@ -266,24 +265,8 @@
 
 <div class="content">
 
-  <!-- OVERVIEW -->
-  <div class="panel active" id="panel-overview">
-    <div class="stats-grid" id="statsCards"></div>
-
-    <div class="grid-2">
-      <div class="table-wrapper" style="padding:16px;">
-        <h3 style="font-size:14px; margin-bottom:12px;">Eventos por Tipo</h3>
-        <ul class="breakdown" id="eventsByType"></ul>
-      </div>
-      <div class="table-wrapper" style="padding:16px;">
-        <h3 style="font-size:14px; margin-bottom:12px;">Smart Fields Capturados</h3>
-        <ul class="breakdown" id="sfSummary"></ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- INSIGHTS -->
-  <div class="panel" id="panel-insights">
+  <!-- OVERVIEW (formerly Insights) -->
+  <div class="panel active" id="panel-insights">
     <div class="filters">
       <select id="insightsPeriod" onchange="loadAnalytics()">
         <option value="7" selected>Ultimos 7 dias</option>
@@ -806,33 +789,9 @@
     document.getElementById('statusText').textContent = text;
   }
 
-  // ====== Stats (overview) ======
+  // ====== Stats (badges) ======
   async function loadStats() {
     const data = await api('/api/stats');
-    const cards = [
-      { label: 'Total Conversas', value: data.totals.sessions, sub: `${data.today.sessions} hoje` },
-      { label: 'Total Eventos', value: data.totals.events, sub: `${data.today.events} hoje` },
-      { label: 'Smart Fields', value: data.totals.smartFields, sub: '' },
-    ];
-    for (const sc of data.statusCounts) {
-      cards.push({ label: statusLabel(sc.status), value: sc.count, sub: '' });
-    }
-    document.getElementById('statsCards').innerHTML = cards.map(c => `
-      <div class="stat-card">
-        <div class="label">${c.label}</div>
-        <div class="value">${c.value}</div>
-        ${c.sub ? `<div class="sub">${c.sub}</div>` : ''}
-      </div>
-    `).join('');
-
-    document.getElementById('eventsByType').innerHTML = data.eventsByType.map(e => `
-      <li><span class="name">${e.event_type}</span><span class="count">${e.count}</span></li>
-    `).join('') || '<li class="empty">Nenhum evento ainda</li>';
-
-    document.getElementById('sfSummary').innerHTML = data.smartFieldsSummary.map(s => `
-      <li><span class="name">${s.field_name}</span><span class="count">${s.count}</span></li>
-    `).join('') || '<li class="empty">Nenhum campo ainda</li>';
-
     document.getElementById('badge-sessions').textContent = data.totals.sessions;
     document.getElementById('badge-events').textContent = data.totals.events;
     document.getElementById('badge-sf').textContent = data.totals.smartFields;
