@@ -1,6 +1,7 @@
 /**
  * POST /api/setup-webhook
- * Registra o webhook do Darwin apontando para este deploy do Vercel.
+ * Registra webhooks do Darwin apontando para este deploy do Vercel.
+ * Registra dois webhooks: um para Ellder (?bot=Ellder) e um para Eva (?bot=Eva).
  *
  * Body: { "url": "https://seu-app.vercel.app" }   (opcional — detecta automaticamente)
  */
@@ -18,48 +19,51 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Detect the Vercel URL automatically from headers or use provided
     const providedUrl = req.body?.url;
     const autoUrl = `https://${req.headers.host}`;
     const baseUrl = providedUrl || autoUrl;
-    const webhookUrl = `${baseUrl}/api/webhook`;
+
+    // Two webhook URLs: one per bot/pipeline
+    const webhookUrls = [
+      { url: `${baseUrl}/api/webhook?bot=Ellder`, bot: 'Ellder' },
+      { url: `${baseUrl}/api/webhook?bot=Eva`, bot: 'Eva' },
+    ];
 
     // Check existing webhooks
     const existing = await fetch(`${BASE_URL}/v1/webhook`, {
       headers: { 'X-API-KEY': API_KEY }
     });
     const webhooks = await existing.json();
+    const existingUrls = Array.isArray(webhooks) ? webhooks.map(w => w.webhookUrl || w.url) : [];
 
-    // See if webhook already points here
-    const alreadyExists = Array.isArray(webhooks) && webhooks.some(w => w.webhookUrl === webhookUrl || w.url === webhookUrl);
+    const results = [];
 
-    if (alreadyExists) {
-      return res.status(200).json({
-        message: 'Webhook already registered',
-        url: webhookUrl,
-        webhooks
+    for (const wh of webhookUrls) {
+      if (existingUrls.includes(wh.url)) {
+        results.push({ bot: wh.bot, url: wh.url, status: 'already registered' });
+        continue;
+      }
+
+      const result = await fetch(`${BASE_URL}/v1/webhook`, {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          webhookUrl: wh.url,
+          types: ['session.*', 'function.call.*']
+        })
       });
+
+      const data = await result.json();
+      results.push({ bot: wh.bot, url: wh.url, status: 'registered', result: data });
     }
 
-    // Register new webhook
-    const result = await fetch(`${BASE_URL}/v1/webhook`, {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        webhookUrl: webhookUrl,
-        types: ['session.*', 'function.call.*']
-      })
-    });
-
-    const data = await result.json();
-
     return res.status(200).json({
-      message: 'Webhook registered!',
-      url: webhookUrl,
-      result: data
+      message: 'Webhooks configured',
+      results,
+      existingWebhooks: webhooks,
     });
   } catch (err) {
     console.error('[setup-webhook]', err);

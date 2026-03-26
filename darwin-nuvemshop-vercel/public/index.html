@@ -633,16 +633,18 @@
   <!-- CONFIG -->
   <div class="panel" id="panel-config">
     <div class="setup-box">
-      <h3>Registrar Webhook no Darwin</h3>
-      <p>Clique no botao abaixo para configurar o Darwin a enviar eventos para este deploy.</p>
-      <button class="btn btn-primary" onclick="setupWebhook()" id="webhookBtn">Registrar Webhook</button>
+      <h3>Registrar Webhooks no Darwin</h3>
+      <p>Registra dois webhooks separados: um para <strong>Ellder</strong> e outro para <strong>Eva</strong>.</p>
+      <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">Importante: No Darwin, configure cada pipeline para apontar para seu webhook correspondente.</p>
+      <button class="btn btn-primary" onclick="setupWebhook()" id="webhookBtn">Registrar Webhooks</button>
       <div class="result" id="webhookResult" style="display:none;"></div>
     </div>
 
     <div class="setup-box" style="margin-top:16px;">
       <h3>URLs da API</h3>
       <div class="detail-grid" style="margin-top:8px;">
-        <dt>Webhook</dt><dd id="urlWebhook">-</dd>
+        <dt>Webhook Ellder</dt><dd id="urlWebhookEllder">-</dd>
+        <dt>Webhook Eva</dt><dd id="urlWebhookEva">-</dd>
         <dt>Sessions</dt><dd id="urlSessions">-</dd>
         <dt>Events</dt><dd id="urlEvents">-</dd>
         <dt>Smart Fields</dt><dd id="urlSf">-</dd>
@@ -1620,13 +1622,14 @@
     } catch (err) {
       result.style.display = 'block';
       result.textContent = 'Erro: ' + err.message;
-    } finally { btn.disabled = false; btn.textContent = 'Registrar Webhook'; }
+    } finally { btn.disabled = false; btn.textContent = 'Registrar Webhooks'; }
   }
 
   // ====== Show URLs ======
   function showUrls() {
     const base = window.location.origin;
-    document.getElementById('urlWebhook').textContent = base + '/api/webhook';
+    document.getElementById('urlWebhookEllder').textContent = base + '/api/webhook?bot=Ellder';
+    document.getElementById('urlWebhookEva').textContent = base + '/api/webhook?bot=Eva';
     document.getElementById('urlSessions').textContent = base + '/api/sessions';
     document.getElementById('urlEvents').textContent = base + '/api/events';
     document.getElementById('urlSf').textContent = base + '/api/smart-fields';

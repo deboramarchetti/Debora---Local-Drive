@@ -24,19 +24,6 @@ export default async function handler(req, res) {
     const days = Math.min(90, Math.max(1, parseInt(req.query.days) || 30));
     const pipeline = req.query.pipeline || null; // 'Ellder', 'Eva', or null (all)
 
-    // Debug: check raw_event keys to find pipeline field
-    if (req.query.view === 'debug-pipeline') {
-      const samples = await sql`
-        SELECT conversation_id, pipeline_name, pipeline_id,
-          SUBSTRING(raw_event, 1, 500) as raw_preview
-        FROM sessions
-        WHERE raw_event IS NOT NULL
-        ORDER BY created_at DESC
-        LIMIT 5
-      `;
-      return res.status(200).json({ samples });
-    }
-
     if (req.query.view === 'insights') {
       return handleInsights(req, res, days, pipeline);
     }

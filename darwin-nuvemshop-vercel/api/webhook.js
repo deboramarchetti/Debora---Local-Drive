@@ -10,9 +10,11 @@ export default async function handler(req, res) {
 
     const body = req.body;
     const raw = JSON.stringify(body);
-    const info = extractCommon(body);
+    // Pipeline can come from: query param (?bot=Eva), payload, or default
+    const botParam = req.query.bot || null;
+    const info = extractCommon(body, botParam);
 
-    console.log(`[webhook] ${info.eventType} | conv=${info.conversationId} | title=${info.conversationTitle}`);
+    console.log(`[webhook] ${info.eventType} | conv=${info.conversationId} | bot=${info.pipelineName} | title=${info.conversationTitle}`);
 
     // 1. Sempre salva o evento bruto
     await sql`
@@ -75,9 +77,11 @@ export default async function handler(req, res) {
 
 // --- helpers ---
 
-function extractCommon(body) {
+function extractCommon(body, botParam) {
   const data = body.data || body;
   const pipelineId = data.pipelineId || data.pipeline_id || data.pipeline?.id || body.pipelineId || null;
+  // Priority: 1) query param ?bot=Eva, 2) pipelineId from payload, 3) default Ellder
+  const pipelineName = botParam || getPipelineName(pipelineId);
   return {
     eventType: body.eventType || 'unknown',
     conversationId: data.conversationId || null,
@@ -90,7 +94,7 @@ function extractCommon(body) {
     agentName: data.agentName || null,
     timestamp: data.timestamp || new Date().toISOString(),
     pipelineId: pipelineId ? String(pipelineId) : null,
-    pipelineName: getPipelineName(pipelineId),
+    pipelineName,
     data,
   };
 }
