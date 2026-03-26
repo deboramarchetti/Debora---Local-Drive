@@ -641,6 +641,16 @@
     </div>
 
     <div class="setup-box" style="margin-top:16px;">
+      <h3>Testar Pipeline</h3>
+      <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">Envia uma conversa de teste para verificar se o tagueamento por bot esta funcionando.</p>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-outline" onclick="testPipelineWebhook('Ellder')">Testar Ellder</button>
+        <button class="btn btn-outline" onclick="testPipelineWebhook('Eva')" style="border-color:#8b5cf6; color:#8b5cf6;">Testar Eva</button>
+      </div>
+      <div class="result" id="testPipelineResult" style="display:none; margin-top:8px;"></div>
+    </div>
+
+    <div class="setup-box" style="margin-top:16px;">
       <h3>URLs da API</h3>
       <div class="detail-grid" style="margin-top:8px;">
         <dt>Webhook Ellder</dt><dd id="urlWebhookEllder">-</dd>
@@ -1611,6 +1621,43 @@
   }
 
   // ====== Webhook setup ======
+  async function testPipelineWebhook(bot) {
+    const result = document.getElementById('testPipelineResult');
+    const testId = 'test-' + bot.toLowerCase() + '-' + Date.now();
+    result.style.display = 'block';
+    result.style.color = '#6b7280';
+    result.textContent = 'Enviando teste para ' + bot + '...';
+    try {
+      const resp = await fetch('/api/webhook?bot=' + bot, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: 'session.opened',
+          data: {
+            conversationId: testId,
+            sessionId: 'sess-' + testId,
+            channelId: '13386',
+            channelName: 'Nuvemshop',
+            conversationTitle: 'TESTE - Pipeline ' + bot,
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
+      const data = await resp.json();
+      if (data.received) {
+        result.style.color = '#16a34a';
+        result.innerHTML = 'Conversa de teste criada como <strong>' + bot + '</strong>! ID: ' + testId + '<br><span style="font-size:11px; color:#6b7280;">Filtre por "' + bot + '" na aba QA Audits ou Conversas para verificar.</span>';
+        refreshAll();
+      } else {
+        result.style.color = '#dc2626';
+        result.textContent = 'Erro: ' + JSON.stringify(data);
+      }
+    } catch (e) {
+      result.style.color = '#dc2626';
+      result.textContent = 'Erro: ' + e.message;
+    }
+  }
+
   async function setupWebhook() {
     const btn = document.getElementById('webhookBtn');
     const result = document.getElementById('webhookResult');
