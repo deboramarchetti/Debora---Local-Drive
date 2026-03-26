@@ -268,6 +268,11 @@
   <!-- OVERVIEW (formerly Insights) -->
   <div class="panel active" id="panel-insights">
     <div class="filters">
+      <select id="insightsPipeline" onchange="loadAnalytics()" style="font-weight:600;">
+        <option value="">Todos os Bots</option>
+        <option value="Ellder">Ellder</option>
+        <option value="Eva">Eva</option>
+      </select>
       <select id="insightsPeriod" onchange="loadAnalytics()">
         <option value="7" selected>Ultimos 7 dias</option>
         <option value="14">Ultimos 14 dias</option>
@@ -493,6 +498,11 @@
   <!-- QA INSIGHTS -->
   <div class="panel" id="panel-qa-insights">
     <div class="filters">
+      <select id="qaInsightsPipeline" onchange="loadQaInsights()" style="font-weight:600;">
+        <option value="">Todos os Bots</option>
+        <option value="Ellder">Ellder</option>
+        <option value="Eva">Eva</option>
+      </select>
       <select id="qaInsightsPeriod" onchange="loadQaInsights()">
         <option value="7">Ultimos 7 dias</option>
         <option value="14">Ultimos 14 dias</option>
@@ -562,6 +572,7 @@
       <table>
         <thead>
           <tr>
+            <th>Bot</th>
             <th>Lead</th>
             <th>Motivo</th>
             <th>Observacoes</th>
@@ -864,9 +875,10 @@
 
   async function loadAnalytics() {
     const days = document.getElementById('insightsPeriod').value;
+    const pipeline = document.getElementById('insightsPipeline').value;
     let data;
     try {
-      data = await api('/api/kpis?view=insights&days=' + days);
+      data = await api('/api/kpis?view=insights&days=' + days + (pipeline ? '&pipeline=' + pipeline : ''));
     } catch (e) {
       console.warn('[insights] failed to load:', e);
       return;
@@ -1005,9 +1017,12 @@
     }
     const scoreColor = (s) => s >= 40 ? '#dc2626' : s >= 20 ? '#f59e0b' : '#6b7280';
     const scoreBg = (s) => s >= 40 ? '#fee2e2' : s >= 20 ? '#fef3c7' : '#f3f4f6';
+    const botColor = (name) => name === 'Eva' ? '#8b5cf6' : '#3b82f6';
+    const botBg = (name) => name === 'Eva' ? '#ede9fe' : '#dbeafe';
     el.innerHTML = `<table>
       <thead><tr>
         <th style="width:36px;"></th>
+        <th>Bot</th>
         <th>Conversa ID</th>
         <th>Telefone</th>
         <th>Lead</th>
@@ -1025,8 +1040,10 @@
         const shortId = parts[0] || cid.substring(0, 10);
         const phone = parts.length > 1 ? parts.slice(1).join('-') : '-';
         const phoneFormatted = phone !== '-' ? '+' + phone.replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '$1 ($2) $3-$4') : '-';
+        const bot = c.pipeline_name || 'Ellder';
         return `<tr style="${rowStyle}">
           <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:${done ? (c.audited.approved ? '#dcfce7' : '#fee2e2') : scoreBg(c.score)}; color:${done ? (c.audited.approved ? '#16a34a' : '#dc2626') : scoreColor(c.score)};">${done ? (c.audited.approved ? '✓' : '✗') : '#' + (i + 1)}</span></td>
+          <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; background:${botBg(bot)}; color:${botColor(bot)};">${bot}</span></td>
           <td style="font-family:monospace; font-size:11px; color:#6b7280; white-space:nowrap;" title="${cid}">${shortId}</td>
           <td style="font-family:monospace; font-size:12px; white-space:nowrap; color:#374151; cursor:pointer;" title="Clique para copiar" onclick="navigator.clipboard.writeText('${phone}').then(()=>this.style.color='#16a34a',setTimeout(()=>this.style.color='#374151',1000))">${phoneFormatted}</td>
           <td><strong>${c.conversation_title || c.conversation_id?.substring(0, 12) + '...' || '-'}</strong>${done ? '<br><span style="font-size:11px;">' + auditLabel + '</span>' : ''}</td>
@@ -1154,9 +1171,10 @@
   // ====== QA Insights ======
   async function loadQaInsights() {
     const days = document.getElementById('qaInsightsPeriod').value;
+    const pipeline = document.getElementById('qaInsightsPipeline').value;
     let data;
     try {
-      data = await api('/api/kpis?view=qa-insights&days=' + days);
+      data = await api('/api/kpis?view=qa-insights&days=' + days + (pipeline ? '&pipeline=' + pipeline : ''));
     } catch (e) {
       console.warn('[qa-insights] failed to load:', e);
       return;
@@ -1244,15 +1262,20 @@
       captura_dados: 'Captura de dados', escalacao: 'Escalacao incorreta',
       informacao_errada: 'Info errada', nao_entendeu: 'Nao entendeu', outro: 'Outro',
     };
-    document.getElementById('qaRejectionsBody').innerHTML = rejections.length > 0 ? rejections.map(r => `
+    const rBotColor = (name) => name === 'Eva' ? '#8b5cf6' : '#3b82f6';
+    const rBotBg = (name) => name === 'Eva' ? '#ede9fe' : '#dbeafe';
+    document.getElementById('qaRejectionsBody').innerHTML = rejections.length > 0 ? rejections.map(r => {
+      const rBot = r.pipeline_name || 'Ellder';
+      return `
       <tr>
+        <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; background:${rBotBg(rBot)}; color:${rBotColor(rBot)};">${rBot}</span></td>
         <td><strong>${r.conversation_title || r.conversation_id?.substring(0, 12) + '...' || '-'}</strong></td>
         <td>${(r.rejection_reason || '-').split(', ').map(rr => `<span class="tag tag-forwarded">${reasonLabels[rr.trim()] || rr.trim()}</span>`).join(' ')}${r.rejection_detail ? '<br><span style="font-size:11px; color:#6b7280;">' + r.rejection_detail + '</span>' : ''}</td>
         <td style="font-size:12px; max-width:300px;">${r.notes || '-'}</td>
         <td>${r.audited_by || '-'}</td>
         <td style="white-space:nowrap; font-size:12px;">${fmtDate(r.audited_at)}</td>
-      </tr>
-    `).join('') : '<tr><td colspan="5" class="empty" style="padding:20px; text-align:center;">Nenhuma reprovacao no periodo</td></tr>';
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty" style="padding:20px; text-align:center;">Nenhuma reprovacao no periodo</td></tr>';
   }
 
   // Render distribution bars

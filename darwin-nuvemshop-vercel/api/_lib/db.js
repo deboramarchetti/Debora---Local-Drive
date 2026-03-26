@@ -25,6 +25,8 @@ export async function ensureTables() {
       forward_type    TEXT,
       forwarded_to    TEXT,
       summary         TEXT,
+      pipeline_id     TEXT,
+      pipeline_name   TEXT,
       raw_event       TEXT,
       created_at      TIMESTAMPTZ DEFAULT NOW(),
       closed_at       TIMESTAMPTZ,
@@ -91,6 +93,9 @@ export async function ensureTables() {
   await sql`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS approved BOOLEAN`;
   await sql`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS rejection_reason TEXT`;
   await sql`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS rejection_detail TEXT`;
+  await sql`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS pipeline_id TEXT`;
+  await sql`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS pipeline_name TEXT`;
+  await sql`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS pipeline_name TEXT`;
   // Remove duplicates before creating unique index (keep most recent)
   await sql`
     DELETE FROM audit_log a USING audit_log b
@@ -109,4 +114,40 @@ export async function ensureTables() {
 
   // Migrate: normalize auditor names (one-time safe migration)
   await sql`UPDATE audit_log SET audited_by = 'Renato Campeas' WHERE audited_by IN ('Renato', 'Renato Campéas')`;
+
+  // Migrate: backfill pipeline_id from raw_event JSON for existing sessions
+  await sql`
+    UPDATE sessions
+    SET pipeline_id = (raw_event::json -> 'data' ->> 'pipelineId')
+    WHERE pipeline_id IS NULL
+      AND raw_event IS NOT NULL
+      AND raw_event::json -> 'data' ->> 'pipelineId' IS NOT NULL
+  `;
+
+  // Migrate: map pipeline_id to pipeline_name using known mappings
+  await sql`UPDATE sessions SET pipeline_name = 'Ellder' WHERE pipeline_id = '6804' AND (pipeline_name IS NULL OR pipeline_name != 'Ellder')`;
+  await sql`UPDATE sessions SET pipeline_name = 'Eva' WHERE pipeline_id = '10132' AND (pipeline_name IS NULL OR pipeline_name != 'Eva')`;
+  // Default: sessions without pipeline_id are Ellder (historical data)
+  await sql`UPDATE sessions SET pipeline_name = 'Ellder' WHERE pipeline_name IS NULL`;
+
+  // Migrate: backfill audit_log pipeline_name from sessions
+  await sql`
+    UPDATE audit_log al
+    SET pipeline_name = s.pipeline_name
+    FROM sessions s
+    WHERE al.conversation_id = s.conversation_id
+      AND al.pipeline_name IS NULL
+      AND s.pipeline_name IS NOT NULL
+  `;
+}
+
+// Pipeline name mapping config
+export const PIPELINE_MAP = {
+  '6804': 'Ellder',
+  '10132': 'Eva',
+};
+
+export function getPipelineName(pipelineId) {
+  if (!pipelineId) return 'Ellder'; // default for historical data
+  return PIPELINE_MAP[String(pipelineId)] || 'Ellder';
 }

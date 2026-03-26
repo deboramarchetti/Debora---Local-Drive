@@ -1,4 +1,4 @@
-import { sql, ensureTables } from './_lib/db.js';
+import { sql, ensureTables, getPipelineName } from './_lib/db.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -77,6 +77,7 @@ export default async function handler(req, res) {
 
 function extractCommon(body) {
   const data = body.data || body;
+  const pipelineId = data.pipelineId || data.pipeline_id || data.pipeline?.id || body.pipelineId || null;
   return {
     eventType: body.eventType || 'unknown',
     conversationId: data.conversationId || null,
@@ -88,6 +89,8 @@ function extractCommon(body) {
     agentId: data.agentId || null,
     agentName: data.agentName || null,
     timestamp: data.timestamp || new Date().toISOString(),
+    pipelineId: pipelineId ? String(pipelineId) : null,
+    pipelineName: getPipelineName(pipelineId),
     data,
   };
 }
@@ -230,8 +233,8 @@ async function saveSmartFields(conversationId, fields) {
 
 async function upsertSession(info, status, raw) {
   await sql`
-    INSERT INTO sessions (conversation_id, session_id, thread_id, channel_id, channel_name, conversation_title, status, raw_event, updated_at)
-    VALUES (${info.conversationId}, ${info.sessionId}, ${info.threadId}, ${info.channelId}, ${info.channelName}, ${info.conversationTitle}, ${status || 'open'}, ${raw}, NOW())
+    INSERT INTO sessions (conversation_id, session_id, thread_id, channel_id, channel_name, conversation_title, status, pipeline_id, pipeline_name, raw_event, updated_at)
+    VALUES (${info.conversationId}, ${info.sessionId}, ${info.threadId}, ${info.channelId}, ${info.channelName}, ${info.conversationTitle}, ${status || 'open'}, ${info.pipelineId}, ${info.pipelineName}, ${raw}, NOW())
     ON CONFLICT (conversation_id) DO UPDATE SET
       session_id         = COALESCE(EXCLUDED.session_id, sessions.session_id),
       thread_id          = COALESCE(EXCLUDED.thread_id, sessions.thread_id),
@@ -239,6 +242,8 @@ async function upsertSession(info, status, raw) {
       channel_name       = COALESCE(EXCLUDED.channel_name, sessions.channel_name),
       conversation_title = COALESCE(EXCLUDED.conversation_title, sessions.conversation_title),
       status             = COALESCE(${status}, sessions.status),
+      pipeline_id        = COALESCE(EXCLUDED.pipeline_id, sessions.pipeline_id),
+      pipeline_name      = COALESCE(EXCLUDED.pipeline_name, sessions.pipeline_name),
       raw_event          = EXCLUDED.raw_event,
       updated_at         = NOW()
   `;

@@ -22,16 +22,17 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'GET or POST only' });
 
     const days = Math.min(90, Math.max(1, parseInt(req.query.days) || 30));
+    const pipeline = req.query.pipeline || null; // 'Ellder', 'Eva', or null (all)
 
     if (req.query.view === 'insights') {
-      return handleInsights(req, res, days);
+      return handleInsights(req, res, days, pipeline);
     }
 
     if (req.query.view === 'qa-insights') {
-      return handleQaInsights(req, res, days);
+      return handleQaInsights(req, res, days, pipeline);
     }
 
-    return handleKpis(req, res, days);
+    return handleKpis(req, res, days, pipeline);
   } catch (err) {
     console.error('[kpis]', err);
     return res.status(500).json({ error: err.message });
@@ -48,9 +49,13 @@ async function handleSaveAudit(req, res) {
     return res.status(400).json({ error: 'campo approved obrigatorio' });
   }
 
+  // Get pipeline_name from session
+  const session = await sql`SELECT pipeline_name FROM sessions WHERE conversation_id = ${conversation_id} LIMIT 1`;
+  const pipelineName = session[0]?.pipeline_name || 'Ellder';
+
   await sql`
-    INSERT INTO audit_log (conversation_id, audit_type, approved, rejection_reason, rejection_detail, issue_category, notes, audited_by)
-    VALUES (${conversation_id}, ${audit_type}, ${approved}, ${rejection_reason || null}, ${rejection_detail || null}, ${rejection_reason || null}, ${notes || null}, ${audited_by || null})
+    INSERT INTO audit_log (conversation_id, audit_type, approved, rejection_reason, rejection_detail, issue_category, notes, audited_by, pipeline_name)
+    VALUES (${conversation_id}, ${audit_type}, ${approved}, ${rejection_reason || null}, ${rejection_detail || null}, ${rejection_reason || null}, ${notes || null}, ${audited_by || null}, ${pipelineName})
     ON CONFLICT (conversation_id, audit_type) DO UPDATE SET
       approved = ${approved},
       rejection_reason = ${rejection_reason || null},
@@ -58,6 +63,7 @@ async function handleSaveAudit(req, res) {
       issue_category = ${rejection_reason || null},
       notes = ${notes || null},
       audited_by = ${audited_by || null},
+      pipeline_name = ${pipelineName},
       audited_at = NOW()
   `;
 
@@ -75,7 +81,10 @@ function calcSampleSize(total) {
 }
 
 // ===== KPIs de SDR (view default) =====
-async function handleKpis(req, res, days) {
+async function handleKpis(req, res, days, pipeline) {
+  // Pipeline filter: null = all, 'Ellder' or 'Eva'
+  const pf = pipeline || null;
+
   const [statusCounts, avgDuration, completeness, volumePerDay, topValues] = await Promise.all([
     sql`SELECT
           COUNT(*)::int as total,
@@ -87,7 +96,8 @@ async function handleKpis(req, res, days) {
           COUNT(*) FILTER (WHERE status = 'forwarded' AND forward_type = 'recovered')::int as recovered,
           COUNT(*) FILTER (WHERE status = 'closed' AND forward_type IS NULL)::int as autonomous
         FROM sessions
-        WHERE created_at > NOW() - INTERVAL '1 day' * ${days}`,
+        WHERE created_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})`,
 
     sql`SELECT
           ROUND(AVG(EXTRACT(EPOCH FROM (closed_at - created_at)) / 60)::numeric, 1) as avg_minutes,
@@ -95,7 +105,8 @@ async function handleKpis(req, res, days) {
           ROUND(MAX(EXTRACT(EPOCH FROM (closed_at - created_at)) / 60)::numeric, 1) as max_minutes
         FROM sessions
         WHERE closed_at IS NOT NULL AND created_at IS NOT NULL
-          AND created_at > NOW() - INTERVAL '1 day' * ${days}`,
+          AND created_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})`,
 
     sql`SELECT
           COUNT(*)::int as total,
@@ -105,7 +116,8 @@ async function handleKpis(req, res, days) {
             SELECT 1 FROM smart_fields sf WHERE sf.conversation_id = s.conversation_id
           ))::int as with_smart_fields
         FROM sessions s
-        WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}`,
+        WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR s.pipeline_name = ${pf})`,
 
     sql`SELECT
           DATE(created_at) as day,
@@ -115,6 +127,7 @@ async function handleKpis(req, res, days) {
           COUNT(*) FILTER (WHERE status = 'closed')::int as closed
         FROM sessions
         WHERE created_at > NOW() - INTERVAL '1 day' * ${days} AND created_at IS NOT NULL
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})
         GROUP BY DATE(created_at)
         ORDER BY day DESC`,
 
@@ -123,6 +136,7 @@ async function handleKpis(req, res, days) {
         JOIN sessions s ON s.conversation_id = sf.conversation_id
         WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
           AND sf.field_name NOT IN ('canal', 'status_final')
+          AND (${pf}::text IS NULL OR s.pipeline_name = ${pf})
         GROUP BY field_name, field_value
         ORDER BY count DESC
         LIMIT 20`,
@@ -153,7 +167,8 @@ async function handleKpis(req, res, days) {
 
 // ===== Insights de negocio (view=insights) =====
 // Periodo: usa days selecionado pelo usuario para tudo (default 30)
-async function handleInsights(req, res, days) {
+async function handleInsights(req, res, days, pipeline) {
+  const pf = pipeline || null;
 
   const [
     totalResult,
@@ -166,17 +181,20 @@ async function handleInsights(req, res, days) {
     existingAudits,
   ] = await Promise.all([
     sql`SELECT COUNT(*)::int as total FROM sessions
-        WHERE created_at > NOW() - INTERVAL '1 day' * ${days}`,
+        WHERE created_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})`,
 
     // Total conversas no periodo selecionado (para calculo de amostra)
     sql`SELECT COUNT(*)::int as total FROM sessions
-        WHERE created_at > NOW() - INTERVAL '1 day' * ${days}`,
+        WHERE created_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})`,
 
     sql`SELECT sf.field_name, sf.field_value, COUNT(*)::int as count
         FROM smart_fields sf
         JOIN sessions s ON s.conversation_id = sf.conversation_id
         WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
           AND sf.field_name IN ('sentiment', 'topic', 'interest', 'Faturamento mensal', 'help_achieved', 'Abandono')
+          AND (${pf}::text IS NULL OR s.pipeline_name = ${pf})
         GROUP BY sf.field_name, sf.field_value
         ORDER BY sf.field_name, count DESC`,
 
@@ -185,6 +203,7 @@ async function handleInsights(req, res, days) {
         JOIN sessions s ON s.conversation_id = sf.conversation_id
         WHERE sf.field_name = 'sentiment'
           AND s.created_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR s.pipeline_name = ${pf})
         GROUP BY sf.field_value, s.status, s.forward_type
         ORDER BY sf.field_value, count DESC`,
 
@@ -193,6 +212,7 @@ async function handleInsights(req, res, days) {
           COUNT(*) FILTER (WHERE status = 'forwarded' AND forward_type = 'qualified')::int as qualified
         FROM sessions
         WHERE created_at > NOW() - INTERVAL '1 day' * ${days} AND created_at IS NOT NULL
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})
         GROUP BY EXTRACT(HOUR FROM created_at)
         ORDER BY hour`,
 
@@ -201,6 +221,7 @@ async function handleInsights(req, res, days) {
           COUNT(*) FILTER (WHERE status = 'forwarded' AND forward_type = 'qualified')::int as qualified
         FROM sessions
         WHERE created_at > NOW() - INTERVAL '1 day' * ${days} AND created_at IS NOT NULL
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})
         GROUP BY EXTRACT(DOW FROM created_at)
         ORDER BY dow`,
 
@@ -214,20 +235,23 @@ async function handleInsights(req, res, days) {
           s.summary,
           s.created_at,
           s.closed_at,
+          s.pipeline_name,
           COALESCE(json_agg(json_build_object('name', sf.field_name, 'value', sf.field_value))
             FILTER (WHERE sf.field_name IS NOT NULL), '[]') as fields
         FROM sessions s
         LEFT JOIN smart_fields sf ON sf.conversation_id = s.conversation_id
         WHERE s.created_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR s.pipeline_name = ${pf})
         GROUP BY s.id, s.conversation_id, s.conversation_title, s.status,
-                 s.forward_type, s.forwarded_to, s.summary, s.created_at, s.closed_at
+                 s.forward_type, s.forwarded_to, s.summary, s.created_at, s.closed_at, s.pipeline_name
         ORDER BY s.created_at DESC
         LIMIT 500`,
 
     // Auditorias ja realizadas no periodo selecionado
     sql`SELECT conversation_id, audit_type, bot_rating, issue_category, notes, prompt_action, audited_by, audited_at, approved, rejection_reason, rejection_detail
         FROM audit_log
-        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}`,
+        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})`,
   ]);
 
   const totalConversas = totalResult[0]?.total || 0;
@@ -296,6 +320,7 @@ async function handleInsights(req, res, days) {
       status: c.status,
       forward_type: c.forward_type,
       created_at: c.created_at,
+      pipeline_name: c.pipeline_name || 'Ellder',
       score,
       reasons,
       help_achieved: help || null,
@@ -359,7 +384,9 @@ async function handleInsights(req, res, days) {
 }
 
 // ===== QA Insights consolidados =====
-async function handleQaInsights(req, res, days) {
+async function handleQaInsights(req, res, days, pipeline) {
+  const pf = pipeline || null;
+
   const [
     totals,
     totalsByType,
@@ -374,7 +401,8 @@ async function handleQaInsights(req, res, days) {
           COUNT(*) FILTER (WHERE approved = false)::int as rejected,
           CASE WHEN COUNT(*) > 0 THEN ROUND((COUNT(*) FILTER (WHERE approved = true)::numeric / COUNT(*)::numeric) * 100, 1) ELSE 0 END as approval_rate
         FROM audit_log
-        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}`,
+        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})`,
 
     sql`SELECT
           audit_type,
@@ -384,6 +412,7 @@ async function handleQaInsights(req, res, days) {
           CASE WHEN COUNT(*) > 0 THEN ROUND((COUNT(*) FILTER (WHERE approved = true)::numeric / COUNT(*)::numeric) * 100, 1) ELSE 0 END as approval_rate
         FROM audit_log
         WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})
         GROUP BY audit_type
         ORDER BY audit_type`,
 
@@ -394,6 +423,7 @@ async function handleQaInsights(req, res, days) {
           LATERAL unnest(string_to_array(COALESCE(rejection_reason, issue_category, 'sem_motivo'), ',')) AS reason_part
         WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
           AND approved = false
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})
         GROUP BY TRIM(reason_part)
         ORDER BY count DESC`,
 
@@ -405,6 +435,7 @@ async function handleQaInsights(req, res, days) {
         FROM audit_log
         WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
           AND audited_by IS NOT NULL
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})
         GROUP BY audited_by
         ORDER BY total DESC`,
 
@@ -415,12 +446,14 @@ async function handleQaInsights(req, res, days) {
           COUNT(*) FILTER (WHERE approved = false)::int as rejected
         FROM audit_log
         WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${pf}::text IS NULL OR pipeline_name = ${pf})
         GROUP BY DATE(audited_at)
         ORDER BY day DESC`,
 
     sql`SELECT
           al.conversation_id,
           s.conversation_title,
+          s.pipeline_name,
           al.rejection_reason,
           al.rejection_detail,
           al.notes,
@@ -430,6 +463,7 @@ async function handleQaInsights(req, res, days) {
         LEFT JOIN sessions s ON s.conversation_id = al.conversation_id
         WHERE al.audited_at > NOW() - INTERVAL '1 day' * ${days}
           AND al.approved = false
+          AND (${pf}::text IS NULL OR al.pipeline_name = ${pf})
         ORDER BY al.audited_at DESC
         LIMIT 50`,
   ]);
