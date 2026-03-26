@@ -1172,14 +1172,19 @@
   async function loadQaInsights() {
     const days = document.getElementById('qaInsightsPeriod').value;
     const pipeline = document.getElementById('qaInsightsPipeline').value;
-    let data;
+    const pipelineParam = pipeline ? '&pipeline=' + pipeline : '';
     try {
-      data = await api('/api/kpis?view=qa-insights&days=' + days + (pipeline ? '&pipeline=' + pipeline : ''));
+      // Load both: audit samples (from insights) + QA results, with same pipeline filter
+      const [insightsData, qaData] = await Promise.all([
+        api('/api/kpis?view=insights&days=' + days + pipelineParam),
+        api('/api/kpis?view=qa-insights&days=' + days + pipelineParam),
+      ]);
+      try { renderAuditSection(insightsData); } catch (e) { console.error('[audit section render]', e); }
+      try { renderQaInsights(qaData); } catch (e) { console.error('[qa-insights render]', e); }
     } catch (e) {
       console.warn('[qa-insights] failed to load:', e);
       return;
     }
-    try { renderQaInsights(data); } catch (e) { console.error('[qa-insights render]', e); }
   }
 
   function renderQaInsights(data) {
