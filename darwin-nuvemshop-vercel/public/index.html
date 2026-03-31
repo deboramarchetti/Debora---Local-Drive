@@ -541,6 +541,9 @@
       <h2 style="font-size:18px; font-weight:700; color:#1a1a2e; margin-bottom:16px;">Resultados das Auditorias</h2>
     </div>
 
+    <!-- Bot Comparison (visible when Todos os Bots) -->
+    <div id="qaPipelineComparison" style="margin-bottom:20px;"></div>
+
     <!-- 5. QA Insights KPI Cards -->
     <div class="stats-grid" id="qaKpiCards"></div>
 
@@ -1228,6 +1231,45 @@
             </div>
           </div>
         </div>`;
+    }
+
+    // Bot comparison (when showing all bots)
+    const pipelines = data.byPipeline || [];
+    const compEl = document.getElementById('qaPipelineComparison');
+    if (pipelines.length > 1) {
+      const botAccent = (n) => n === 'Eva' ? '#8b5cf6' : '#3b82f6';
+      compEl.innerHTML = `
+        <div style="display:flex; gap:16px; flex-wrap:wrap;">
+          ${pipelines.map(p => {
+            const rate = parseFloat(p.approval_rate) || 0;
+            const rc = rateColor(rate);
+            const accent = botAccent(p.pipeline_name);
+            return `
+            <div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); border-left:4px solid ${accent}; flex:1; min-width:220px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                <span style="display:inline-block; padding:3px 10px; border-radius:10px; font-size:13px; font-weight:700; background:${p.pipeline_name === 'Eva' ? '#ede9fe' : '#dbeafe'}; color:${accent};">${p.pipeline_name}</span>
+              </div>
+              <div style="font-size:42px; font-weight:800; color:${rc}; line-height:1;">${rate}%</div>
+              <div style="font-size:11px; color:#9ca3af; margin-top:4px;">taxa de aprovacao</div>
+              <div style="display:flex; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid #f3f4f6;">
+                <div style="text-align:center; flex:1;">
+                  <div style="font-size:20px; font-weight:700; color:#374151;">${p.total}</div>
+                  <div style="font-size:10px; color:#9ca3af;">total</div>
+                </div>
+                <div style="text-align:center; flex:1;">
+                  <div style="font-size:20px; font-weight:700; color:#16a34a;">${p.approved}</div>
+                  <div style="font-size:10px; color:#9ca3af;">aprovados</div>
+                </div>
+                <div style="text-align:center; flex:1;">
+                  <div style="font-size:20px; font-weight:700; color:#dc2626;">${p.rejected}</div>
+                  <div style="font-size:10px; color:#9ca3af;">reprovados</div>
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    } else {
+      compEl.innerHTML = '';
     }
 
     document.getElementById('qaKpiCards').innerHTML = `

@@ -485,6 +485,21 @@ async function handleQaInsights(req, res, days, pipeline) {
     byType[row.audit_type] = row;
   }
 
+  // Per-bot breakdown (only when showing all bots)
+  let byPipeline = [];
+  if (!pf) {
+    byPipeline = await sql`SELECT
+          COALESCE(pipeline_name, 'Ellder') as pipeline_name,
+          COUNT(*)::int as total,
+          COUNT(*) FILTER (WHERE approved = true)::int as approved,
+          COUNT(*) FILTER (WHERE approved = false)::int as rejected,
+          CASE WHEN COUNT(*) > 0 THEN ROUND((COUNT(*) FILTER (WHERE approved = true)::numeric / COUNT(*)::numeric) * 100, 1) ELSE 0 END as approval_rate
+        FROM audit_log
+        WHERE audited_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY COALESCE(pipeline_name, 'Ellder')
+        ORDER BY pipeline_name`;
+  }
+
   return res.status(200).json({
     period: { days },
     totals: totals[0],
@@ -492,6 +507,7 @@ async function handleQaInsights(req, res, days, pipeline) {
     byReason: byReason.map(r => ({ ...r, label: reasonLabels[r.reason] || r.reason })),
     byAuditor,
     byDay,
+    byPipeline,
     recentRejections,
   });
 }
