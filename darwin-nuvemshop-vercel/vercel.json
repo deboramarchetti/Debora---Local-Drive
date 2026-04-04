@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/public/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/stats?mode=cron", "schedule": "0 6 * * *" }
+  ]
+}
