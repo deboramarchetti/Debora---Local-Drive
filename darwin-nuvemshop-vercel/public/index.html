@@ -1,1795 +1,202 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Darwin + Nuvemshop — Dashboard</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #1a1a2e; }
-
-    /* Header */
-    .header {
-      background: #1a1a2e; color: #fff; padding: 16px 24px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .header h1 { font-size: 18px; font-weight: 600; }
-    .header h1 span { color: #7c3aed; }
-    .header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-    .status-dot.ok { background: #22c55e; }
-    .status-dot.loading { background: #f59e0b; }
-    .status-dot.error { background: #ef4444; }
-    .btn { padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: #fff; cursor: pointer; font-size: 13px; }
-    .btn:hover { background: rgba(255,255,255,.1); }
-    .btn-sm { padding: 4px 10px; font-size: 12px; }
-    .btn-primary { background: #7c3aed; border-color: #7c3aed; }
-    .btn-primary:hover { background: #6d28d9; }
-    .btn-outline { background: transparent; border: 1px solid #d1d5db; color: #374151; }
-    .btn-outline:hover { background: #f3f4f6; }
-
-    /* Tabs */
-    .tabs { display: flex; gap: 0; background: #fff; border-bottom: 2px solid #e5e7eb; padding: 0 24px; overflow-x: auto; }
-    .tab { padding: 12px 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap; }
-    .tab:hover { color: #1a1a2e; }
-    .tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
-    .tab .badge { background: #e5e7eb; color: #6b7280; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-left: 6px; }
-    .tab.active .badge { background: #ede9fe; color: #7c3aed; }
-
-    /* Content */
-    .content { padding: 24px; max-width: 1400px; margin: 0 auto; }
-    .panel { display: none; }
-    .panel.active { display: block; }
-
-    /* Stats cards */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-    .stat-card .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
-    .stat-card .value { font-size: 28px; font-weight: 700; color: #1a1a2e; }
-    .stat-card .sub { font-size: 12px; color: #9ca3af; margin-top: 2px; }
-    .stat-card.highlight { border-left: 4px solid #7c3aed; }
-    .stat-card.good .value { color: #16a34a; }
-    .stat-card.warn .value { color: #f59e0b; }
-    .stat-card.bad .value { color: #dc2626; }
-
-    /* Tables */
-    .table-wrapper { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { background: #f9fafb; text-align: left; padding: 10px 14px; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
-    td { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
-    tr:hover td { background: #faf5ff; }
-    .empty { text-align: center; padding: 40px; color: #9ca3af; }
-
-    /* Tags */
-    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-    .tag-open { background: #dcfce7; color: #166534; }
-    .tag-closed { background: #fee2e2; color: #991b1b; }
-    .tag-forwarded { background: #fef3c7; color: #92400e; }
-    .tag-analyzed { background: #e0e7ff; color: #3730a3; }
-    .tag-event { background: #f3f4f6; color: #374151; }
-    .tag-ok { background: #dcfce7; color: #166534; }
-    .tag-warning { background: #fef3c7; color: #92400e; }
-    .tag-error { background: #fee2e2; color: #991b1b; }
-
-    /* Filters */
-    .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-    .filters select, .filters input { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; background: #fff; }
-
-    /* Pagination */
-    .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 16px; }
-    .pagination button { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; }
-    .pagination button:disabled { opacity: .4; cursor: default; }
-    .pagination span { font-size: 13px; color: #6b7280; }
-
-    /* Session detail modal */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; }
-    .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
-    .modal { background: #fff; border-radius: 12px; max-width: 800px; width: 95%; max-height: 85vh; overflow-y: auto; padding: 24px; }
-    .modal h2 { font-size: 16px; margin-bottom: 16px; }
-    .modal .close-btn { float: right; background: none; border: none; font-size: 20px; cursor: pointer; color: #6b7280; }
-    .modal section { margin-bottom: 20px; }
-    .modal section h3 { font-size: 14px; color: #7c3aed; margin-bottom: 8px; }
-    .detail-grid { display: grid; grid-template-columns: 140px 1fr; gap: 4px 12px; font-size: 13px; }
-    .detail-grid dt { font-weight: 600; color: #374151; }
-    .detail-grid dd { color: #6b7280; word-break: break-all; }
-
-    /* Breakdown list */
-    .breakdown { list-style: none; }
-    .breakdown li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
-    .breakdown .name { color: #374151; }
-    .breakdown .count { font-weight: 600; color: #7c3aed; }
-
-    /* Health checks */
-    .check-card { background: #fff; border-radius: 8px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #e5e7eb; margin-bottom: 8px; }
-    .check-card.ok { border-left-color: #22c55e; }
-    .check-card.warning { border-left-color: #f59e0b; }
-    .check-card.error { border-left-color: #ef4444; }
-    .check-info .check-name { font-size: 13px; font-weight: 600; color: #374151; }
-    .check-info .check-desc { font-size: 11px; color: #9ca3af; margin-top: 2px; }
-    .check-value { font-size: 20px; font-weight: 700; }
-    .check-card.ok .check-value { color: #16a34a; }
-    .check-card.warning .check-value { color: #f59e0b; }
-    .check-card.error .check-value { color: #dc2626; }
-
-    /* Bar chart (CSS-only) */
-    .bar-chart { display: flex; flex-direction: column; gap: 4px; }
-    .bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-    .bar-label { width: 50px; text-align: right; color: #6b7280; flex-shrink: 0; }
-    .bar-track { flex: 1; height: 20px; background: #f3f4f6; border-radius: 4px; overflow: hidden; }
-    .bar-fill { height: 100%; background: #7c3aed; border-radius: 4px; min-width: 2px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
-    .bar-fill span { font-size: 10px; color: #fff; font-weight: 600; }
-
-    /* Funnel */
-    .funnel { display: flex; flex-direction: column; gap: 6px; }
-    .funnel-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-    .funnel-label { width: 160px; text-align: right; color: #374151; flex-shrink: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .funnel-track { flex: 1; height: 28px; background: #f3f4f6; border-radius: 6px; overflow: hidden; position: relative; }
-    .funnel-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 10px; min-width: 40px; transition: width .3s; }
-    .funnel-fill span { font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap; }
-    .funnel-pct { width: 45px; font-size: 12px; font-weight: 700; color: #7c3aed; text-align: right; flex-shrink: 0; }
-
-    /* Distribution donut/bar */
-    .dist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .dist-card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-    .dist-card h4 { font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
-    .dist-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
-    .dist-bar .label { width: 140px; text-align: right; color: #374151; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dist-bar .track { flex: 1; height: 22px; background: #f3f4f6; border-radius: 4px; overflow: hidden; }
-    .dist-bar .fill { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; min-width: 2px; }
-    .dist-bar .fill span { font-size: 10px; color: #fff; font-weight: 600; }
-    .dist-bar .count { width: 60px; font-size: 11px; color: #6b7280; flex-shrink: 0; }
-
-    /* Heatmap */
-    .heatmap { display: flex; gap: 3px; align-items: flex-end; }
-    .heatmap-col { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .heatmap-cell { width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: #fff; }
-    .heatmap-label { font-size: 10px; color: #6b7280; margin-top: 2px; }
-
-    /* Cross table */
-    .cross-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .cross-table th { background: #f9fafb; padding: 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #e5e7eb; }
-    .cross-table td { padding: 8px; text-align: center; border: 1px solid #f3f4f6; }
-    .cross-table td.highlight { background: #ede9fe; font-weight: 600; color: #7c3aed; }
-    .cross-table .row-label { text-align: left; font-weight: 500; color: #374151; background: #f9fafb; }
-
-    /* Insight cards */
-    .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .check-label { display:flex; align-items:center; gap:6px; font-size:13px; padding:6px 8px; border-radius:6px; border:1px solid #e5e7eb; cursor:pointer; transition:background .15s; }
-    .check-label:hover { background:#f3f4f6; }
-    .check-label input[type=checkbox] { accent-color:#7c3aed; width:16px; height:16px; }
-    .insight-card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-top: 3px solid #7c3aed; }
-    .insight-card .insight-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
-    .insight-card .insight-value { font-size: 24px; font-weight: 700; color: #1a1a2e; }
-    .insight-card .insight-detail { font-size: 12px; color: #9ca3af; margin-top: 4px; }
-    .insight-card .insight-action { font-size: 11px; color: #7c3aed; margin-top: 8px; font-weight: 500; }
-
-    /* Missing data alert */
-    .missing-alert { background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; }
-    .missing-alert h4 { font-size: 13px; color: #92400e; margin-bottom: 4px; }
-    .missing-alert p { font-size: 12px; color: #a16207; }
-
-    /* Webhook setup */
-    .setup-box { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-top: 24px; }
-    .setup-box h3 { font-size: 14px; margin-bottom: 8px; }
-    .setup-box p { font-size: 13px; color: #6b7280; margin-bottom: 12px; }
-    .setup-box .result { margin-top: 12px; padding: 12px; background: #f9fafb; border-radius: 6px; font-size: 12px; font-family: monospace; white-space: pre-wrap; }
-
-    /* Section headers */
-    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .section-header h3 { font-size: 15px; font-weight: 600; color: #374151; }
-
-    /* Two-column grid */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-    /* Completeness badge */
-    .completeness { display: inline-flex; gap: 3px; }
-    .completeness .dot { width: 8px; height: 8px; border-radius: 50%; background: #e5e7eb; }
-    .completeness .dot.filled { background: #22c55e; }
-
-    /* Login screen */
-    .login-overlay {
-      position: fixed; inset: 0; background: #1a1a2e;
-      display: flex; align-items: center; justify-content: center; z-index: 200;
-    }
-    .login-overlay.hidden { display: none; }
-    .login-box {
-      background: #fff; border-radius: 12px; padding: 40px; width: 360px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.3); text-align: center;
-    }
-    .login-box h2 { font-size: 18px; margin-bottom: 4px; color: #1a1a2e; }
-    .login-box p { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
-    .login-error { color: #dc2626; font-size: 12px; margin-top: 12px; display: none; }
-    .google-btn {
-      display: inline-flex; align-items: center; gap: 10px;
-      padding: 10px 24px; background: #fff; border: 1px solid #d1d5db;
-      border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;
-      color: #374151; transition: all .15s;
-    }
-    .google-btn:hover { background: #f9fafb; border-color: #9ca3af; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-    .google-btn svg { width: 18px; height: 18px; }
-    .user-info { display: flex; align-items: center; gap: 8px; }
-    .user-avatar { width: 28px; height: 28px; border-radius: 50%; }
-    .user-name { font-size: 13px; color: #d1d5db; }
-
-    /* Pulse animation for last event */
-    .pulse { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
-    .pulse.recent { background: #22c55e; animation: pulse-anim 2s infinite; }
-    .pulse.stale { background: #f59e0b; }
-    .pulse.dead { background: #ef4444; }
-    @keyframes pulse-anim { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
-
-    @media (max-width: 640px) {
-      .content { padding: 12px; }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-      .grid-2 { grid-template-columns: 1fr; }
-    }
-  </style>
-  <script src="https://accounts.google.com/gsi/client" async></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>This page has been migrated!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        .container {
+            text-align: center;
+            max-width: 700px;
+            padding: 40px;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #ff6b35;
+            text-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+        }
+        .warning {
+            font-size: 1.1em;
+            color: #ccc;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .new-link {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #ff6b35, #f7c948);
+            color: #0a0a0a;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.2em;
+            border-radius: 8px;
+            margin: 20px 0;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .new-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 107, 53, 0.6);
+        }
+        .countdown {
+            font-size: 5em;
+            font-weight: bold;
+            margin: 30px 0;
+            color: #ff3333;
+            text-shadow: 0 0 30px rgba(255, 51, 51, 0.8);
+            transition: all 0.3s;
+        }
+        .countdown.shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px) rotate(-2deg); }
+            75% { transform: translateX(10px) rotate(2deg); }
+        }
+        .gif-container {
+            margin: 20px 0;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .gif-container.visible {
+            opacity: 1;
+        }
+        .gif-container img {
+            max-width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(255, 107, 53, 0.4);
+        }
+        .status {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 20px;
+        }
+        .blink {
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        .boom {
+            font-size: 8em;
+            display: none;
+            animation: boom 0.5s ease-out;
+        }
+        @keyframes boom {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .particles {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            animation: fly 2s ease-out forwards;
+        }
+        @keyframes fly {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+    </style>
 </head>
 <body>
+    <div class="particles" id="particles"></div>
+    <div class="container">
+        <h1>This page has been migrated!</h1>
+        <p class="warning">
+            All data, dashboards, and webhooks have been safely relocated.<br>
+            This deployment will self-destruct in...
+        </p>
 
-<!-- Login screen -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <h2>Darwin + Nuvemshop</h2>
-    <p>Entre com seu email corporativo</p>
-    <div id="googleBtnContainer"></div>
-    <div class="login-error" id="loginError"></div>
-  </div>
-</div>
+        <div class="countdown" id="countdown">5</div>
 
-<div class="header">
-  <h1>Darwin <span>+</span> Nuvemshop</h1>
-  <div class="header-right">
-    <span class="status-dot loading" id="statusDot"></span>
-    <span id="statusText">Carregando...</span>
-    <button class="btn" onclick="refreshAll()">Atualizar</button>
-    <div class="user-info" id="userInfo" style="display:none;">
-      <img class="user-avatar" id="userAvatar" src="" alt="" referrerpolicy="no-referrer">
-      <span class="user-name" id="userName"></span>
-    </div>
-    <button class="btn" onclick="logout()">Sair</button>
-  </div>
-</div>
-
-<div class="tabs" id="tabs">
-  <div class="tab active" data-panel="insights">Overview</div>
-  <div class="tab" data-panel="qa-insights">QA Audits</div>
-  <div class="tab" data-panel="performance">Performance SDR</div>
-  <div class="tab" data-panel="sessions">Conversas <span class="badge" id="badge-sessions">0</span></div>
-  <div class="tab" data-panel="smartfields">Smart Fields <span class="badge" id="badge-sf">0</span></div>
-  <div class="tab" data-panel="events">Eventos <span class="badge" id="badge-events">0</span></div>
-  <div class="tab" data-panel="health">Saude</div>
-  <div class="tab" data-panel="config">Config</div>
-</div>
-
-<div class="content">
-
-  <!-- OVERVIEW (formerly Insights) -->
-  <div class="panel active" id="panel-insights">
-    <div class="filters">
-      <select id="insightsPipeline" onchange="loadAnalytics()" style="font-weight:600;">
-        <option value="">Todos os Bots</option>
-        <option value="Ellder">Ellder</option>
-        <option value="Eva">Eva</option>
-      </select>
-      <select id="insightsPeriod" onchange="loadAnalytics()">
-        <option value="7" selected>Ultimos 7 dias</option>
-        <option value="14">Ultimos 14 dias</option>
-        <option value="30">Ultimos 30 dias</option>
-        <option value="90">Ultimos 90 dias</option>
-      </select>
-    </div>
-
-    <!-- Insight Cards -->
-    <div class="insight-grid" id="insightCards"></div>
-
-    <!-- Sentiment + help_achieved -->
-    <div class="dist-grid" style="margin-bottom:16px;">
-      <div class="dist-card">
-        <h4>Sentimento dos Leads</h4>
-        <div id="distSentiment"></div>
-      </div>
-      <div class="dist-card">
-        <h4>Efetividade do Bot (help_achieved)</h4>
-        <div id="distHelpAchieved"></div>
-      </div>
-    </div>
-
-    <!-- 7. Faturamento + Topic -->
-    <div class="dist-grid" style="margin-bottom:16px;">
-      <div class="dist-card">
-        <h4>Faturamento Mensal dos Leads</h4>
-        <div id="distFaturamento"></div>
-      </div>
-      <div class="dist-card">
-        <h4>Topicos / Interesse</h4>
-        <div id="distTopic"></div>
-      </div>
-    </div>
-
-    <!-- 8. Sentimento x Desfecho -->
-    <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
-      <div class="section-header">
-        <h3 style="font-size:15px; font-weight:600;">Sentimento x Desfecho</h3>
-        <span style="font-size:12px; color:#9ca3af;">O sentimento influencia o resultado?</span>
-      </div>
-      <div id="crossSentiment"></div>
-    </div>
-
-    <!-- 9. Horario de Pico + Dia da Semana -->
-    <div class="grid-2" style="margin-bottom:16px;">
-      <div class="table-wrapper" style="padding:20px;">
-        <h3 style="font-size:14px; margin-bottom:12px;">Conversas por Hora do Dia</h3>
-        <div id="hourlyPatternChart" class="bar-chart"></div>
-      </div>
-      <div class="table-wrapper" style="padding:20px;">
-        <h3 style="font-size:14px; margin-bottom:12px;">Conversas por Dia da Semana</h3>
-        <div id="weekdayPatternChart" class="bar-chart"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Audit modal -->
-  <div class="modal-overlay" id="auditModal">
-    <div class="modal" style="max-width:500px;">
-      <button class="close-btn" onclick="closeAuditModal()">&times;</button>
-      <h2 style="font-size:16px; margin-bottom:16px;">Auditar Conversa</h2>
-      <input type="hidden" id="auditConvId">
-      <input type="hidden" id="auditType">
-
-      <div style="margin-bottom:12px;">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Aprovado?</label>
-        <div style="display:flex; gap:8px;" id="auditApprovedBtns">
-          <button class="btn btn-outline" onclick="setAuditApproved(true)" id="approvedYes" style="flex:1; padding:10px;">Sim</button>
-          <button class="btn btn-outline" onclick="setAuditApproved(false)" id="approvedNo" style="flex:1; padding:10px;">Nao</button>
+        <div class="gif-container" id="gif">
+            <img src="https://media1.giphy.com/media/xih6nCPZh8MkrAvpN7/giphy.gif" alt="Explosion!">
         </div>
-      </div>
 
-      <div style="margin-bottom:12px; display:none;" id="rejectionReasonGroup">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Problemas Identificados <span style="font-size:11px; color:#9ca3af; font-weight:400;">(selecione todos que se aplicam)</span></label>
-        <div id="auditRejectionReasons" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-          <label class="check-label"><input type="checkbox" value="tom"> Tom da conversa</label>
-          <label class="check-label"><input type="checkbox" value="precisao"> Precisao das respostas</label>
-          <label class="check-label"><input type="checkbox" value="fluxo"> Fluxo da conversa</label>
-          <label class="check-label"><input type="checkbox" value="captura_dados"> Captura de dados</label>
-          <label class="check-label"><input type="checkbox" value="escalacao"> Escalacao incorreta</label>
-          <label class="check-label"><input type="checkbox" value="informacao_errada"> Informacao errada</label>
-          <label class="check-label"><input type="checkbox" value="nao_entendeu"> Bot nao entendeu o cliente</label>
-          <label class="check-label"><input type="checkbox" value="outro" onchange="toggleOutroField()"> Outro</label>
-        </div>
-      </div>
+        <div class="boom" id="boom">BOOM!</div>
 
-      <div style="margin-bottom:12px; display:none;" id="rejectionDetailGroup">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Detalhe do motivo</label>
-        <input id="auditRejectionDetail" type="text" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;" placeholder="Descreva o motivo...">
-      </div>
+        <a href="https://darwin-nuvemshop.vercel.app" class="new-link" id="link">
+            Go to the new dashboard
+        </a>
 
-      <div style="margin-bottom:12px;" id="auditNotesGroup">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Observacoes <span id="notesRequired" style="color:#dc2626; display:none;">*obrigatorio</span></label>
-        <textarea id="auditNotes" rows="3" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; resize:vertical;" placeholder="Detalhes sobre o que aconteceu nessa conversa..."></textarea>
-      </div>
-
-      <div style="margin-bottom:16px;">
-        <label style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">Auditor</label>
-        <input type="text" id="auditBy" readonly style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; background:#f3f4f6; color:#374151; cursor:default;" />
-      </div>
-
-      <div style="display:flex; gap:8px;">
-        <button class="btn btn-primary" onclick="submitAudit()" id="auditSubmitBtn" style="flex:1;">Salvar Auditoria</button>
-        <button class="btn btn-outline" onclick="closeAuditModal()">Cancelar</button>
-      </div>
-      <div id="auditSubmitStatus" style="font-size:12px; margin-top:8px;"></div>
-    </div>
-  </div>
-
-  <!-- PERFORMANCE SDR -->
-  <div class="panel" id="panel-performance">
-    <div class="filters">
-      <select id="kpiPeriod" onchange="loadKpis()">
-        <option value="7">Ultimos 7 dias</option>
-        <option value="14">Ultimos 14 dias</option>
-        <option value="30" selected>Ultimos 30 dias</option>
-        <option value="90">Ultimos 90 dias</option>
-      </select>
+        <p class="status" id="status">
+            <span class="blink">_</span> Initiating self-destruct sequence...
+        </p>
     </div>
 
-    <div class="stats-grid" id="kpiCards"></div>
+    <script>
+        let count = 5;
+        const countdownEl = document.getElementById('countdown');
+        const gifEl = document.getElementById('gif');
+        const boomEl = document.getElementById('boom');
+        const statusEl = document.getElementById('status');
+        const linkEl = document.getElementById('link');
+        const particlesEl = document.getElementById('particles');
 
-    <div class="grid-2">
-      <div class="table-wrapper" style="padding:16px;">
-        <h3 style="font-size:14px; margin-bottom:12px;">Volume Diario</h3>
-        <div id="volumeChart" class="bar-chart"></div>
-      </div>
-      <div class="table-wrapper" style="padding:16px;">
-        <h3 style="font-size:14px; margin-bottom:12px;">Top Valores Extraidos</h3>
-        <ul class="breakdown" id="topValues"></ul>
-      </div>
-    </div>
-
-    <div class="table-wrapper" style="padding:16px; margin-top:16px;">
-      <div class="section-header">
-        <h3 style="font-size:14px;">Completude de Dados</h3>
-      </div>
-      <div class="stats-grid" id="completenessCards"></div>
-    </div>
-  </div>
-
-  <!-- SESSIONS -->
-  <div class="panel" id="panel-sessions">
-    <div class="filters">
-      <select id="filterStatus" onchange="loadSessions()">
-        <option value="">Todos os status</option>
-        <option value="open">Aberta</option>
-        <option value="closed">Fechada</option>
-        <option value="forwarded">Encaminhada</option>
-      </select>
-      <button class="btn btn-outline btn-sm" onclick="exportCSV('sessions')">Exportar CSV</button>
-    </div>
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Conversa</th>
-            <th>Status</th>
-            <th>Canal</th>
-            <th>Encaminh.</th>
-            <th>Dados</th>
-            <th>Atualizado</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="sessionsBody"></tbody>
-      </table>
-    </div>
-    <div class="pagination" id="sessionsPag"></div>
-  </div>
-
-  <!-- SMART FIELDS -->
-  <div class="panel" id="panel-smartfields">
-    <div class="filters">
-      <select id="filterField" onchange="loadSmartFields()">
-        <option value="">Todos os campos</option>
-      </select>
-      <button class="btn btn-primary btn-sm" onclick="reprocessSmartFields()" id="reprocessBtn">Reprocessar Eventos</button>
-      <span id="reprocessStatus" style="font-size:12px; color:#6b7280;"></span>
-      <button class="btn btn-outline btn-sm" onclick="exportCSV('smart-fields')" style="margin-left:auto;">Exportar CSV</button>
-    </div>
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Campo</th>
-            <th>Valor</th>
-            <th>Conversa</th>
-            <th>Status Sessao</th>
-            <th>Capturado em</th>
-          </tr>
-        </thead>
-        <tbody id="sfBody"></tbody>
-      </table>
-    </div>
-    <div class="pagination" id="sfPag"></div>
-  </div>
-
-  <!-- EVENTS -->
-  <div class="panel" id="panel-events">
-    <div class="filters">
-      <select id="filterEventType" onchange="loadEvents()"></select>
-      <button class="btn btn-outline btn-sm" onclick="exportCSV('events')" style="margin-left:auto;">Exportar CSV</button>
-    </div>
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>Conversa</th>
-            <th>Agente</th>
-            <th>Timestamp</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="eventsBody"></tbody>
-      </table>
-    </div>
-    <div class="pagination" id="eventsPag"></div>
-  </div>
-
-  <!-- QA INSIGHTS -->
-  <div class="panel" id="panel-qa-insights">
-    <div class="filters">
-      <select id="qaInsightsPipeline" onchange="loadQaInsights()" style="font-weight:600;">
-        <option value="">Todos os Bots</option>
-        <option value="Ellder">Ellder</option>
-        <option value="Eva">Eva</option>
-      </select>
-      <select id="qaInsightsPeriod" onchange="loadQaInsights()">
-        <option value="7">Ultimos 7 dias</option>
-        <option value="14">Ultimos 14 dias</option>
-        <option value="30" selected>Ultimos 30 dias</option>
-        <option value="90">Ultimos 90 dias</option>
-      </select>
-      <span style="font-size:12px; color:#9ca3af; margin-left:8px;">Periodo para insights e auditorias.</span>
-    </div>
-
-    <!-- 1. Audit Progress Bar (3 dias) -->
-    <div id="auditRecommendation" style="margin-bottom:16px;"></div>
-
-    <!-- 2. Audit Insight Cards (sentimento, sem resposta, abandono) -->
-    <div class="insight-grid" id="auditInsightCards" style="margin-bottom:16px;"></div>
-
-    <!-- 3. QA Criticos -->
-    <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
-      <div class="section-header">
-        <h3 style="font-size:20px; font-weight:700;">😱 QA: Casos Criticos</h3>
-        <span style="font-size:12px; color:#9ca3af;">Conversas com problemas identificados — prioridade maxima</span>
-      </div>
-      <div id="auditCritical"></div>
-    </div>
-
-    <!-- 4. QA Amostra Aleatoria -->
-    <div class="table-wrapper" style="padding:20px; margin-bottom:16px;">
-      <div class="section-header">
-        <h3 style="font-size:20px; font-weight:700;">🎲 QA: Amostra Aleatoria</h3>
-        <span style="font-size:12px; color:#9ca3af;">Amostra sem vies para avaliar qualidade geral do bot</span>
-      </div>
-      <div id="auditRandom"></div>
-    </div>
-
-    <!-- Divider -->
-    <div style="border-top:2px solid #e5e7eb; margin:24px 0; padding-top:24px;">
-      <h2 style="font-size:18px; font-weight:700; color:#1a1a2e; margin-bottom:16px;">Resultados das Auditorias</h2>
-    </div>
-
-    <!-- Bot Comparison (visible when Todos os Bots) -->
-    <div id="qaPipelineComparison" style="margin-bottom:20px;"></div>
-
-    <!-- 5. QA Insights KPI Cards -->
-    <div class="stats-grid" id="qaKpiCards"></div>
-
-    <div class="grid-2" style="margin-top:16px;">
-      <!-- Reprovacoes por Motivo -->
-      <div class="table-wrapper" style="padding:16px;">
-        <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">Reprovacoes por Motivo</h3>
-        <div id="qaByReasonChart" class="bar-chart"></div>
-      </div>
-
-      <!-- Auditorias por Auditor -->
-      <div class="table-wrapper" style="padding:16px;">
-        <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">Auditorias por Auditor</h3>
-        <div id="qaByAuditorChart"></div>
-      </div>
-    </div>
-
-    <!-- Volume por Dia -->
-    <div class="table-wrapper" style="padding:16px; margin-top:16px;">
-      <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">Volume de Auditorias por Dia</h3>
-      <div id="qaByDayChart" class="bar-chart"></div>
-    </div>
-
-    <!-- Reprovacoes Recentes -->
-    <div class="table-wrapper" style="margin-top:16px;">
-      <div style="padding:16px 16px 8px;">
-        <h3 style="font-size:15px; font-weight:600;">Reprovacoes Recentes</h3>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Bot</th>
-            <th>Lead</th>
-            <th>Motivo</th>
-            <th>Observacoes</th>
-            <th>Auditor</th>
-            <th>Data</th>
-          </tr>
-        </thead>
-        <tbody id="qaRejectionsBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- HEALTH / SAUDE -->
-  <div class="panel" id="panel-health">
-    <div class="section-header">
-      <h3>Status do Webhook</h3>
-      <span id="lastEventStatus" style="font-size:13px;"></span>
-    </div>
-
-    <div id="healthChecks" style="margin-bottom:24px;"></div>
-
-    <div class="grid-2">
-      <div class="table-wrapper" style="padding:16px;">
-        <h3 style="font-size:14px; margin-bottom:12px;">Eventos por Hora (24h)</h3>
-        <div id="hourlyChart" class="bar-chart"></div>
-      </div>
-      <div class="table-wrapper" style="padding:16px;">
-        <h3 style="font-size:14px; margin-bottom:12px;">Tipos de Evento (24h)</h3>
-        <ul class="breakdown" id="types24h"></ul>
-      </div>
-    </div>
-
-    <div id="gapsSection" style="margin-top:16px; display:none;">
-      <div class="table-wrapper" style="padding:16px;">
-        <h3 style="font-size:14px; margin-bottom:12px; color: #dc2626;">Gaps Detectados (periodos sem eventos)</h3>
-        <ul class="breakdown" id="gapsList"></ul>
-      </div>
-    </div>
-
-    <div class="table-wrapper" style="margin-top:16px;">
-      <div class="section-header" style="padding:16px 16px 0;">
-        <h3 style="font-size:14px;">Log de Eventos Recentes</h3>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>Conversa</th>
-            <th>Agente</th>
-            <th>Recebido</th>
-          </tr>
-        </thead>
-        <tbody id="recentEventsBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- CONFIG -->
-  <div class="panel" id="panel-config">
-    <div class="setup-box">
-      <h3>Registrar Webhooks no Darwin</h3>
-      <p>Registra dois webhooks separados: um para <strong>Ellder</strong> e outro para <strong>Eva</strong>.</p>
-      <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">Importante: No Darwin, configure cada pipeline para apontar para seu webhook correspondente.</p>
-      <button class="btn btn-primary" onclick="setupWebhook()" id="webhookBtn">Registrar Webhooks</button>
-      <div class="result" id="webhookResult" style="display:none;"></div>
-    </div>
-
-    <div class="setup-box" style="margin-top:16px;">
-      <h3>Testar Pipeline</h3>
-      <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">Envia uma conversa de teste para verificar se o tagueamento por bot esta funcionando.</p>
-      <div style="display:flex; gap:8px;">
-        <button class="btn btn-outline" onclick="testPipelineWebhook('Ellder')">Testar Ellder</button>
-        <button class="btn btn-outline" onclick="testPipelineWebhook('Eva')" style="border-color:#8b5cf6; color:#8b5cf6;">Testar Eva</button>
-      </div>
-      <div class="result" id="testPipelineResult" style="display:none; margin-top:8px;"></div>
-    </div>
-
-    <div class="setup-box" style="margin-top:16px;">
-      <h3>URLs da API</h3>
-      <div class="detail-grid" style="margin-top:8px;">
-        <dt>Webhook Ellder</dt><dd id="urlWebhookEllder">-</dd>
-        <dt>Webhook Eva</dt><dd id="urlWebhookEva">-</dd>
-        <dt>Sessions</dt><dd id="urlSessions">-</dd>
-        <dt>Events</dt><dd id="urlEvents">-</dd>
-        <dt>Smart Fields</dt><dd id="urlSf">-</dd>
-        <dt>Stats</dt><dd id="urlStats">-</dd>
-        <dt>KPIs</dt><dd id="urlKpis">-</dd>
-        <dt>Health</dt><dd id="urlHealth">-</dd>
-        <dt>Analytics</dt><dd id="urlAnalytics">-</dd>
-        <dt>Export</dt><dd id="urlExport">-</dd>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- Session detail modal -->
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <button class="close-btn" onclick="closeModal()">&times;</button>
-    <h2 id="modalTitle">Detalhes da Conversa</h2>
-    <div id="modalContent"></div>
-  </div>
-</div>
-
-<script>
-  // ====== State ======
-  let currentPage = { sessions: 1, events: 1, sf: 1 };
-  let currentUser = null;
-
-  // ====== Google SSO ======
-  function handleGoogleCredential(response) {
-    const errEl = document.getElementById('loginError');
-    errEl.style.display = 'none';
-    fetch('/api/auth/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken: response.credential }),
-    })
-      .then(r => r.json().then(data => ({ ok: r.ok, data })))
-      .then(({ ok, data }) => {
-        if (!ok) {
-          errEl.textContent = data.error || 'Erro ao autenticar';
-          errEl.style.display = 'block';
-          return;
+        function createParticles() {
+            const colors = ['#ff6b35', '#f7c948', '#ff3333', '#ff9500', '#ffcc00'];
+            for (let i = 0; i < 50; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const size = Math.random() * 12 + 4;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.background = colors[Math.floor(Math.random() * colors.length)];
+                p.style.left = '50%';
+                p.style.top = '50%';
+                p.style.setProperty('--tx', (Math.random() - 0.5) * window.innerWidth + 'px');
+                p.style.setProperty('--ty', (Math.random() - 0.5) * window.innerHeight + 'px');
+                p.style.animationDelay = Math.random() * 0.3 + 's';
+                particlesEl.appendChild(p);
+            }
         }
-        currentUser = data.user;
-        onLoginSuccess();
-      })
-      .catch(() => {
-        errEl.textContent = 'Erro de conexao';
-        errEl.style.display = 'block';
-      });
-  }
 
-  let googleClientId = '';
-
-  async function initGoogleButton() {
-    // Fetch client ID from API
-    if (!googleClientId) {
-      try {
-        const cfg = await fetch('/api/auth/config').then(r => r.json());
-        googleClientId = cfg.googleClientId;
-      } catch { return; }
-    }
-    if (!googleClientId) return;
-    // Wait for Google GSI library to load
-    if (typeof google === 'undefined' || !google.accounts) {
-      setTimeout(initGoogleButton, 200);
-      return;
-    }
-    google.accounts.id.initialize({
-      client_id: googleClientId,
-      callback: handleGoogleCredential,
-      auto_select: true,
-    });
-    google.accounts.id.renderButton(
-      document.getElementById('googleBtnContainer'),
-      { theme: 'outline', size: 'large', text: 'signin_with', locale: 'pt-BR', width: 280 }
-    );
-    google.accounts.id.prompt();
-  }
-
-  function onLoginSuccess() {
-    document.getElementById('loginOverlay').classList.add('hidden');
-    if (currentUser) {
-      const userInfo = document.getElementById('userInfo');
-      const avatar = document.getElementById('userAvatar');
-      const name = document.getElementById('userName');
-      if (currentUser.picture) { avatar.src = currentUser.picture; }
-      else { avatar.style.display = 'none'; }
-      name.textContent = currentUser.name || currentUser.email;
-      userInfo.style.display = 'flex';
-      // Auto-fill auditor full name from Google account
-      const auditBy = document.getElementById('auditBy');
-      if (auditBy && currentUser.name) {
-        auditBy.value = currentUser.name;
-      }
-    }
-    refreshAll();
-  }
-
-  async function logout() {
-    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
-    currentUser = null;
-    document.getElementById('userInfo').style.display = 'none';
-    document.getElementById('loginOverlay').classList.remove('hidden');
-    if (typeof google !== 'undefined' && google.accounts) {
-      google.accounts.id.disableAutoSelect();
-    }
-  }
-
-  // ====== Init ======
-  document.addEventListener('DOMContentLoaded', async () => {
-    setupTabs();
-    showUrls();
-    // Check if already logged in via cookie
-    try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        currentUser = data.user;
-        onLoginSuccess();
-        return;
-      }
-    } catch {}
-    // Not logged in — show Google button
-    initGoogleButton();
-  });
-
-  // ====== Tabs ======
-  function setupTabs() {
-    document.getElementById('tabs').addEventListener('click', (e) => {
-      const tab = e.target.closest('.tab');
-      if (!tab) return;
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      const panel = document.getElementById('panel-' + tab.dataset.panel);
-      if (panel) panel.classList.add('active');
-    });
-  }
-
-  // ====== Refresh all ======
-  async function refreshAll() {
-    setStatus('loading', 'Carregando...');
-    try {
-      await Promise.all([loadStats(), loadSessions(), loadSmartFields(), loadEvents(), loadKpis(), loadHealth(), loadAnalytics(), loadQaInsights()]);
-      setStatus('ok', 'Atualizado ' + new Date().toLocaleTimeString('pt-BR'));
-    } catch (err) {
-      setStatus('error', 'Erro: ' + err.message);
-    }
-  }
-
-  function setStatus(type, text) {
-    document.getElementById('statusDot').className = 'status-dot ' + type;
-    document.getElementById('statusText').textContent = text;
-  }
-
-  // ====== Stats (badges) ======
-  async function loadStats() {
-    const data = await api('/api/stats');
-    document.getElementById('badge-sessions').textContent = data.totals.sessions;
-    document.getElementById('badge-events').textContent = data.totals.events;
-    document.getElementById('badge-sf').textContent = data.totals.smartFields;
-  }
-
-  // ====== KPIs (Performance SDR) ======
-  async function loadKpis() {
-    const days = document.getElementById('kpiPeriod').value;
-    const data = await api('/api/kpis?days=' + days);
-    const r = data.rates;
-    const c = data.counts;
-    const d = data.duration;
-
-    // KPI Cards
-    const kpis = [
-      { label: 'Total Sessoes', value: c.total, sub: `${days} dias`, cls: '' },
-      { label: 'Taxa Qualificacao', value: r.qualification + '%', sub: `${c.qualified} qualificadas`, cls: r.qualification >= 30 ? 'good' : r.qualification >= 15 ? 'warn' : 'bad' },
-      { label: 'Taxa Resolucao Autonoma', value: r.autonomous + '%', sub: `${c.autonomous} autonomas`, cls: r.autonomous >= 50 ? 'good' : 'warn' },
-      { label: 'Taxa Escalacao', value: r.escalation + '%', sub: `${c.escalated} escaladas`, cls: r.escalation <= 15 ? 'good' : r.escalation <= 30 ? 'warn' : 'bad' },
-      { label: 'Taxa Recuperacao', value: r.recovery + '%', sub: `${c.recovered} recuperadas`, cls: '' },
-      { label: 'Tempo Medio Sessao', value: d.avg_minutes !== null ? d.avg_minutes + ' min' : '-', sub: d.min_minutes !== null ? `Min: ${d.min_minutes} / Max: ${d.max_minutes} min` : '', cls: '' },
-      { label: 'Cobertura de Dados', value: r.dataCoverage + '%', sub: 'conversas com smart fields', cls: r.dataCoverage >= 80 ? 'good' : r.dataCoverage >= 50 ? 'warn' : 'bad' },
-    ];
-
-    document.getElementById('kpiCards').innerHTML = kpis.map(k => `
-      <div class="stat-card highlight ${k.cls}">
-        <div class="label">${k.label}</div>
-        <div class="value">${k.value}</div>
-        ${k.sub ? `<div class="sub">${k.sub}</div>` : ''}
-      </div>
-    `).join('');
-
-    // Volume chart (last 14 days max)
-    const vol = data.volumePerDay.slice(0, 14).reverse();
-    const maxVol = Math.max(...vol.map(v => v.total), 1);
-    document.getElementById('volumeChart').innerHTML = vol.length > 0 ? vol.map(v => {
-      const pct = Math.round((v.total / maxVol) * 100);
-      const day = v.day ? new Date(v.day + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '?';
-      return `<div class="bar-row">
-        <span class="bar-label">${day}</span>
-        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"><span>${v.total}</span></div></div>
-      </div>`;
-    }).join('') : '<div class="empty">Sem dados</div>';
-
-    // Top values
-    document.getElementById('topValues').innerHTML = data.topValues.length > 0
-      ? data.topValues.map(v => `<li><span class="name">${v.field_name}: ${v.field_value}</span><span class="count">${v.count}</span></li>`).join('')
-      : '<li class="empty">Nenhum valor extraido</li>';
-
-    // Completeness cards
-    const comp = data.completeness;
-    const compCards = [
-      { label: 'Com Resumo IA', value: comp.with_summary, total: comp.total },
-      { label: 'Com Titulo', value: comp.with_title, total: comp.total },
-      { label: 'Com Smart Fields', value: comp.with_smart_fields, total: comp.total },
-    ];
-    document.getElementById('completenessCards').innerHTML = compCards.map(cc => {
-      const pct = cc.total > 0 ? Math.round((cc.value / cc.total) * 100) : 0;
-      return `<div class="stat-card">
-        <div class="label">${cc.label}</div>
-        <div class="value">${pct}%</div>
-        <div class="sub">${cc.value} de ${cc.total}</div>
-      </div>`;
-    }).join('');
-  }
-
-  // ====== Insights / Analytics ======
-  const DIST_COLORS = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1', '#14b8a6'];
-  const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
-
-  async function loadAnalytics() {
-    const days = document.getElementById('insightsPeriod').value;
-    const pipeline = document.getElementById('insightsPipeline').value;
-    let data;
-    try {
-      data = await api('/api/kpis?view=insights&days=' + days + (pipeline ? '&pipeline=' + pipeline : ''));
-    } catch (e) {
-      console.warn('[insights] failed to load:', e);
-      return;
-    }
-    try { renderInsights(data); } catch (e) { console.error('[insights render]', e); }
-  }
-
-  let currentAuditApproved = null;
-
-  function renderInsights(data) {
-    // --- 1. Insight Cards (Insights tab) ---
-    const cards = [];
-    const sentDist = data.distributions?.sentiment;
-    if (sentDist && sentDist.length > 0) {
-      const top = sentDist[0];
-      cards.push({ label: 'Sentimento Predominante', value: top.value, detail: `${top.pct}% (${top.count})`, action: top.value === 'Negative' ? 'Leads insatisfeitos' : '', color: top.value === 'Positive' ? '#16a34a' : top.value === 'Negative' ? '#dc2626' : '#6b7280' });
-    }
-    const helpDist = data.distributions?.help_achieved;
-    if (helpDist) {
-      const unr = helpDist.find(h => h.value === 'UNRESPONSIVE');
-      if (unr) cards.push({ label: 'Sem Resposta', value: unr.pct + '%', detail: `${unr.count} UNRESPONSIVE`, action: unr.pct > 40 ? 'Bot perdendo leads' : '', color: unr.pct > 40 ? '#dc2626' : unr.pct > 20 ? '#f59e0b' : '#16a34a' });
-    }
-    const abDist = data.distributions?.Abandono;
-    if (abDist) {
-      const sim = abDist.find(a => a.value === 'Sim' || a.value === 'true');
-      if (sim) cards.push({ label: 'Abandono', value: sim.pct + '%', detail: `${sim.count} abandonos`, action: sim.pct > 30 ? 'Critico' : '', color: sim.pct > 30 ? '#dc2626' : '#f59e0b' });
-    }
-    if (data.totalConversas > 0) cards.push({ label: 'Total Conversas', value: data.totalConversas, detail: 'periodo selecionado', action: '', color: '#7c3aed' });
-
-    document.getElementById('insightCards').innerHTML = cards.length > 0 ? cards.map(c => `
-      <div class="insight-card">
-        <div class="insight-label">${c.label}</div>
-        <div class="insight-value" style="color:${c.color}">${c.value}</div>
-        <div class="insight-detail">${c.detail}</div>
-        ${c.action ? `<div class="insight-action">${c.action}</div>` : ''}
-      </div>
-    `).join('') : '';
-
-    // --- 2. Distribuicoes ---
-    renderDistribution('distSentiment', data.distributions?.sentiment, ['#16a34a', '#6b7280', '#dc2626', '#f59e0b']);
-    renderDistribution('distHelpAchieved', data.distributions?.help_achieved, ['#16a34a', '#dc2626', '#6b7280', '#f59e0b']);
-    renderDistribution('distFaturamento', data.distributions?.['Faturamento mensal'], DIST_COLORS);
-    const topicData = data.distributions?.topic || [];
-    const interestData = data.distributions?.interest || [];
-    const combined = [...topicData.map(t => ({...t, src: 'topic'})), ...interestData.map(t => ({...t, src: 'interest'}))];
-    combined.sort((a, b) => b.count - a.count);
-    renderDistribution('distTopic', combined.length > 0 ? combined.slice(0, 10) : null, DIST_COLORS);
-
-    // --- 3. Cross table ---
-    renderCrossTable('crossSentiment', data.sentimentOutcome);
-
-    // --- 4. Hourly + Weekly ---
-    const hourly = data.hourlyPattern || [];
-    const maxH = Math.max(...hourly.map(h => h.total), 1);
-    document.getElementById('hourlyPatternChart').innerHTML = hourly.length > 0 ? hourly.map(h => {
-      const pct = Math.round((h.total / maxH) * 100);
-      const hr = String(h.hour).padStart(2, '0') + ':00';
-      return `<div class="bar-row"><span class="bar-label">${hr}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;"><span>${h.total}</span></div></div></div>`;
-    }).join('') : '<div class="empty">Sem dados</div>';
-
-    const weekly = data.weekdayPattern || [];
-    const maxW = Math.max(...weekly.map(w => w.total), 1);
-    document.getElementById('weekdayPatternChart').innerHTML = weekly.length > 0 ? weekly.map(w => {
-      const pct = Math.round((w.total / maxW) * 100);
-      return `<div class="bar-row"><span class="bar-label">${WEEKDAYS[w.dow] || w.dow}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;"><span>${w.total}</span></div></div></div>`;
-    }).join('') : '<div class="empty">Sem dados</div>';
-
-    // --- 5. Render audit sections in QA tab ---
-    renderAuditSection(data);
-  }
-
-  function renderAuditSection(data) {
-    const a = data.audit || {};
-
-    // Progress bar
-    const remaining = a.recommendedTotal - a.auditedCount;
-    const pctDone = a.pctComplete || 0;
-    const barColor = pctDone >= 80 ? '#16a34a' : pctDone >= 40 ? '#f59e0b' : '#dc2626';
-    const periodLabel = document.getElementById('qaInsightsPeriod').selectedOptions[0]?.text || 'periodo';
-    document.getElementById('auditRecommendation').innerHTML = (a.totalConversasPeriod || a.totalConversas3d || 0) > 0 ? `
-      <div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); border-left:4px solid ${barColor};">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <div>
-            <span style="font-size:20px; font-weight:700; color:#1a1a2e;">Auditar ${a.recommendedTotal} conversas</span>
-            <span style="font-size:13px; color:#6b7280; margin-left:8px;">(${a.criticalCount} criticas + ${a.randomCount} aleatorias) de ${a.totalConversasPeriod || a.totalConversas3d} — ${periodLabel}</span>
-          </div>
-          <div style="text-align:right;">
-            <span style="font-size:24px; font-weight:700; color:${barColor};">${a.auditedCount}/${a.recommendedTotal}</span>
-            <div style="font-size:11px; color:#9ca3af;">${remaining > 0 ? remaining + ' restantes' : 'Completo!'}</div>
-          </div>
-        </div>
-        <div style="background:#f3f4f6; border-radius:6px; height:12px; overflow:hidden;">
-          <div style="background:${barColor}; height:100%; width:${pctDone}%; border-radius:6px; transition:width .3s;"></div>
-        </div>
-        <div style="font-size:11px; color:#9ca3af; margin-top:4px;">${pctDone}% concluido — meta: 60%+ do volume total auditado</div>
-      </div>
-    ` : '<div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); text-align:center; color:#9ca3af;">Nenhuma conversa no periodo selecionado</div>';
-
-    // Audit insight cards (sentimento, sem resposta, abandono)
-    const cards = [];
-    const sentDist = data.distributions?.sentiment;
-    if (sentDist && sentDist.length > 0) {
-      const top = sentDist[0];
-      cards.push({ label: 'Sentimento Predominante', value: top.value, detail: `${top.pct}% (${top.count})`, color: top.value === 'Positive' ? '#16a34a' : top.value === 'Negative' ? '#dc2626' : '#6b7280' });
-    }
-    const helpDist = data.distributions?.help_achieved;
-    if (helpDist) {
-      const unr = helpDist.find(h => h.value === 'UNRESPONSIVE');
-      if (unr) cards.push({ label: 'Sem Resposta', value: unr.pct + '%', detail: `${unr.count} UNRESPONSIVE`, color: unr.pct > 40 ? '#dc2626' : unr.pct > 20 ? '#f59e0b' : '#16a34a' });
-    }
-    const abDist = data.distributions?.Abandono;
-    if (abDist) {
-      const sim = abDist.find(a => a.value === 'Sim' || a.value === 'true');
-      if (sim) cards.push({ label: 'Abandono', value: sim.pct + '%', detail: `${sim.count} abandonos`, color: sim.pct > 30 ? '#dc2626' : '#f59e0b' });
-    }
-    if (data.totalConversas > 0) cards.push({ label: 'Total Conversas', value: data.totalConversas, detail: 'periodo selecionado', color: '#7c3aed' });
-
-    document.getElementById('auditInsightCards').innerHTML = cards.length > 0 ? cards.map(c => `
-      <div class="insight-card">
-        <div class="insight-label">${c.label}</div>
-        <div class="insight-value" style="color:${c.color}">${c.value}</div>
-        <div class="insight-detail">${c.detail}</div>
-      </div>
-    `).join('') : '';
-
-    // Audit tables
-    renderAuditTable('auditCritical', a.critical, 'critical');
-    renderAuditTable('auditRandom', a.random, 'random');
-  }
-
-  function renderAuditTable(elementId, items, auditType) {
-    const el = document.getElementById(elementId);
-    if (!items || items.length === 0) {
-      el.innerHTML = '<div class="empty" style="padding:20px;">Nenhuma conversa nesta categoria</div>';
-      return;
-    }
-    const scoreColor = (s) => s >= 40 ? '#dc2626' : s >= 20 ? '#f59e0b' : '#6b7280';
-    const scoreBg = (s) => s >= 40 ? '#fee2e2' : s >= 20 ? '#fef3c7' : '#f3f4f6';
-    const botColor = (name) => name === 'Eva' ? '#8b5cf6' : '#3b82f6';
-    const botBg = (name) => name === 'Eva' ? '#ede9fe' : '#dbeafe';
-    el.innerHTML = `<table>
-      <thead><tr>
-        <th style="width:36px;"></th>
-        <th>Bot</th>
-        <th>Conversa ID</th>
-        <th>Telefone</th>
-        <th>Lead</th>
-        <th>Status</th>
-        <th>Razao</th>
-        <th>Data</th>
-        <th style="width:120px;"></th>
-      </tr></thead>
-      <tbody>${items.map((c, i) => {
-        const done = !!c.audited;
-        const rowStyle = done ? (c.audited.approved ? 'background:#f0fdf4;' : 'background:#fef2f2;') : '';
-        const auditLabel = done ? (c.audited.approved ? '<span style="color:#16a34a;">Aprovado</span>' : '<span style="color:#dc2626;">Reprovado — ' + (c.audited.rejection_reason || c.audited.issue_category || '?') + '</span>') : '';
-        const cid = c.conversation_id || '';
-        const parts = cid.split('-');
-        const shortId = parts[0] || cid.substring(0, 10);
-        const phone = parts.length > 1 ? parts.slice(1).join('-') : '-';
-        const phoneFormatted = phone !== '-' ? '+' + phone.replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '$1 ($2) $3-$4') : '-';
-        const bot = c.pipeline_name || 'Ellder';
-        return `<tr style="${rowStyle}">
-          <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:${done ? (c.audited.approved ? '#dcfce7' : '#fee2e2') : scoreBg(c.score)}; color:${done ? (c.audited.approved ? '#16a34a' : '#dc2626') : scoreColor(c.score)};">${done ? (c.audited.approved ? '✓' : '✗') : '#' + (i + 1)}</span></td>
-          <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; background:${botBg(bot)}; color:${botColor(bot)};">${bot}</span></td>
-          <td style="font-family:monospace; font-size:11px; color:#6b7280; white-space:nowrap;" title="${cid}">${shortId}</td>
-          <td style="font-family:monospace; font-size:12px; white-space:nowrap; color:#374151; cursor:pointer;" title="Clique para copiar" onclick="navigator.clipboard.writeText('${phone}').then(()=>this.style.color='#16a34a',setTimeout(()=>this.style.color='#374151',1000))">${phoneFormatted}</td>
-          <td><strong>${c.conversation_title || c.conversation_id?.substring(0, 12) + '...' || '-'}</strong>${done ? '<br><span style="font-size:11px;">' + auditLabel + '</span>' : ''}</td>
-          <td><span class="tag tag-${c.status || 'open'}">${statusLabel(c.status)}</span>${c.forward_type ? ' <span class="tag tag-forwarded">' + c.forward_type + '</span>' : ''}</td>
-          <td style="font-size:12px; color:#374151; max-width:280px;">${c.reasons.join(' / ')}</td>
-          <td style="white-space:nowrap; font-size:12px;">${fmtDate(c.created_at)}</td>
-          <td style="white-space:nowrap;">
-            <button class="btn btn-outline btn-sm" onclick="openSessionDetail('${c.conversation_id}')" style="margin-right:4px;">Ver</button>
-            ${done
-              ? `<button class="btn btn-outline btn-sm" onclick='openAuditModal("${c.conversation_id}", "${auditType}", ${JSON.stringify(JSON.stringify(c.audited))})' style="color:#6b7280;">Editar</button>`
-              : `<button class="btn btn-primary btn-sm" onclick="openAuditModal('${c.conversation_id}', '${auditType}')">Auditar</button>`}
-          </td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>`;
-  }
-
-  // Audit modal
-  function openAuditModal(convId, auditType, existingJson) {
-    currentAuditApproved = null;
-    document.getElementById('auditConvId').value = convId;
-    document.getElementById('auditType').value = auditType;
-    document.querySelectorAll('#auditRejectionReasons input[type=checkbox]').forEach(cb => cb.checked = false);
-    document.getElementById('auditRejectionDetail').value = '';
-    document.getElementById('auditNotes').value = '';
-    // Auto-fill auditor full name from Google account
-    const auditByEl = document.getElementById('auditBy');
-    auditByEl.value = currentUser ? (currentUser.name || '') : '';
-    document.getElementById('auditSubmitStatus').textContent = '';
-    document.getElementById('rejectionReasonGroup').style.display = 'none';
-    document.getElementById('rejectionDetailGroup').style.display = 'none';
-    document.getElementById('notesRequired').style.display = 'none';
-    document.getElementById('approvedYes').style.background = '';
-    document.getElementById('approvedYes').style.color = '';
-    document.getElementById('approvedNo').style.background = '';
-    document.getElementById('approvedNo').style.color = '';
-
-    // Pre-fill if editing existing audit
-    if (existingJson) {
-      const existing = typeof existingJson === 'string' ? JSON.parse(existingJson) : existingJson;
-      setAuditApproved(existing.approved);
-      if (!existing.approved && existing.rejection_reason) {
-        const reasons = existing.rejection_reason.split(', ').map(r => r.trim());
-        document.querySelectorAll('#auditRejectionReasons input[type=checkbox]').forEach(cb => {
-          if (reasons.includes(cb.value)) cb.checked = true;
-        });
-        if (reasons.includes('outro')) toggleOutroField();
-      }
-      if (existing.rejection_detail) document.getElementById('auditRejectionDetail').value = existing.rejection_detail;
-      if (existing.notes) document.getElementById('auditNotes').value = existing.notes;
-      if (existing.audited_by) document.getElementById('auditBy').value = existing.audited_by;
-    }
-
-    document.getElementById('auditModal').classList.add('active');
-  }
-  function closeAuditModal() { document.getElementById('auditModal').classList.remove('active'); }
-  document.getElementById('auditModal')?.addEventListener('click', (e) => { if (e.target.classList.contains('modal-overlay')) closeAuditModal(); });
-
-  function setAuditApproved(val) {
-    currentAuditApproved = val;
-    document.getElementById('approvedYes').style.background = val ? '#16a34a' : '';
-    document.getElementById('approvedYes').style.color = val ? '#fff' : '';
-    document.getElementById('approvedNo').style.background = !val ? '#dc2626' : '';
-    document.getElementById('approvedNo').style.color = !val ? '#fff' : '';
-    document.getElementById('rejectionReasonGroup').style.display = val ? 'none' : 'block';
-    document.getElementById('notesRequired').style.display = val ? 'none' : 'inline';
-    if (val) {
-      document.getElementById('rejectionReasonGroup').style.display = 'none';
-      document.getElementById('rejectionDetailGroup').style.display = 'none';
-      document.querySelectorAll('#auditRejectionReasons input[type=checkbox]').forEach(cb => cb.checked = false);
-      document.getElementById('auditRejectionDetail').value = '';
-    }
-  }
-
-  function getSelectedReasons() {
-    return [...document.querySelectorAll('#auditRejectionReasons input[type=checkbox]:checked')].map(cb => cb.value);
-  }
-  function toggleOutroField() {
-    const reasons = getSelectedReasons();
-    const hasOutro = reasons.includes('outro');
-    document.getElementById('rejectionDetailGroup').style.display = hasOutro ? 'block' : 'none';
-    if (!hasOutro) document.getElementById('auditRejectionDetail').value = '';
-  }
-
-  async function submitAudit() {
-    const convId = document.getElementById('auditConvId').value;
-    const auditType = document.getElementById('auditType').value;
-    const auditor = document.getElementById('auditBy').value;
-    const approved = currentAuditApproved;
-    const reasons = getSelectedReasons();
-    const rejectionReason = reasons.length > 0 ? reasons.join(', ') : null;
-    const rejectionDetail = document.getElementById('auditRejectionDetail').value.trim() || null;
-    const notes = document.getElementById('auditNotes').value.trim() || null;
-
-    if (approved === null) { document.getElementById('auditSubmitStatus').textContent = 'Selecione Aprovado ou Nao'; return; }
-    if (!auditor) { document.getElementById('auditSubmitStatus').textContent = 'Erro: usuario nao identificado. Faca login novamente.'; return; }
-    if (!approved && reasons.length === 0) { document.getElementById('auditSubmitStatus').textContent = 'Selecione ao menos um problema identificado'; return; }
-    if (!approved && reasons.includes('outro') && !rejectionDetail) { document.getElementById('auditSubmitStatus').textContent = 'Detalhe o motivo da reprovacao'; return; }
-    if (!approved && !notes) { document.getElementById('auditSubmitStatus').textContent = 'Observacoes sao obrigatorias quando reprovado'; return; }
-
-    const btn = document.getElementById('auditSubmitBtn');
-    btn.disabled = true; btn.textContent = 'Salvando...';
-    try {
-      await api('/api/kpis?action=audit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversation_id: convId,
-          audit_type: auditType,
-          approved,
-          rejection_reason: rejectionReason,
-          rejection_detail: rejectionDetail,
-          notes,
-          audited_by: auditor,
-        }),
-      });
-      closeAuditModal();
-      await loadAnalytics();
-    } catch (e) {
-      document.getElementById('auditSubmitStatus').textContent = 'Erro: ' + e.message;
-      document.getElementById('auditSubmitStatus').style.color = '#dc2626';
-    } finally { btn.disabled = false; btn.textContent = 'Salvar Auditoria'; }
-  }
-
-  // ====== QA Insights ======
-  async function loadQaInsights() {
-    const days = document.getElementById('qaInsightsPeriod').value;
-    const pipeline = document.getElementById('qaInsightsPipeline').value;
-    const pipelineParam = pipeline ? '&pipeline=' + pipeline : '';
-    try {
-      // Load both: audit samples (from insights) + QA results, with same pipeline filter
-      const [insightsData, qaData] = await Promise.all([
-        api('/api/kpis?view=insights&days=' + days + pipelineParam),
-        api('/api/kpis?view=qa-insights&days=' + days + pipelineParam),
-      ]);
-      try { renderAuditSection(insightsData); } catch (e) { console.error('[audit section render]', e); }
-      try { renderQaInsights(qaData); } catch (e) { console.error('[qa-insights render]', e); }
-    } catch (e) {
-      console.warn('[qa-insights] failed to load:', e);
-      return;
-    }
-  }
-
-  function renderQaInsights(data) {
-    const t = data.totals || {};
-    const bt = data.byType || {};
-    const crit = bt.critical || { total: 0, approved: 0, rejected: 0, approval_rate: 0 };
-    const rand = bt.random || { total: 0, approved: 0, rejected: 0, approval_rate: 0 };
-    const rateColor = (r) => r >= 80 ? '#16a34a' : r >= 50 ? '#f59e0b' : '#dc2626';
-
-    function scoreCard(label, typeData, accent) {
-      const rate = parseFloat(typeData.approval_rate) || 0;
-      return `
-        <div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); border-top:3px solid ${accent}; flex:1; min-width:200px;">
-          <div style="font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:#6b7280; margin-bottom:8px;">${label}</div>
-          <div style="font-size:36px; font-weight:800; color:${rateColor(rate)}; line-height:1;">${rate}%</div>
-          <div style="font-size:11px; color:#9ca3af; margin-top:4px;">taxa de aprovacao</div>
-          <div style="display:flex; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid #f3f4f6;">
-            <div style="text-align:center; flex:1;">
-              <div style="font-size:18px; font-weight:700; color:#374151;">${typeData.total || 0}</div>
-              <div style="font-size:10px; color:#9ca3af;">total</div>
-            </div>
-            <div style="text-align:center; flex:1;">
-              <div style="font-size:18px; font-weight:700; color:#16a34a;">${typeData.approved || 0}</div>
-              <div style="font-size:10px; color:#9ca3af;">aprovados</div>
-            </div>
-            <div style="text-align:center; flex:1;">
-              <div style="font-size:18px; font-weight:700; color:#dc2626;">${typeData.rejected || 0}</div>
-              <div style="font-size:10px; color:#9ca3af;">reprovados</div>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    // Bot comparison (when showing all bots)
-    const pipelines = data.byPipeline || [];
-    const compEl = document.getElementById('qaPipelineComparison');
-    if (pipelines.length > 1) {
-      const botAccent = (n) => n === 'Eva' ? '#8b5cf6' : '#3b82f6';
-      compEl.innerHTML = `
-        <div style="display:flex; gap:16px; flex-wrap:wrap;">
-          ${pipelines.map(p => {
-            const rate = parseFloat(p.approval_rate) || 0;
-            const rc = rateColor(rate);
-            const accent = botAccent(p.pipeline_name);
-            return `
-            <div style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); border-left:4px solid ${accent}; flex:1; min-width:220px;">
-              <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                <span style="display:inline-block; padding:3px 10px; border-radius:10px; font-size:13px; font-weight:700; background:${p.pipeline_name === 'Eva' ? '#ede9fe' : '#dbeafe'}; color:${accent};">${p.pipeline_name}</span>
-              </div>
-              <div style="font-size:42px; font-weight:800; color:${rc}; line-height:1;">${rate}%</div>
-              <div style="font-size:11px; color:#9ca3af; margin-top:4px;">taxa de aprovacao</div>
-              <div style="display:flex; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid #f3f4f6;">
-                <div style="text-align:center; flex:1;">
-                  <div style="font-size:20px; font-weight:700; color:#374151;">${p.total}</div>
-                  <div style="font-size:10px; color:#9ca3af;">total</div>
-                </div>
-                <div style="text-align:center; flex:1;">
-                  <div style="font-size:20px; font-weight:700; color:#16a34a;">${p.approved}</div>
-                  <div style="font-size:10px; color:#9ca3af;">aprovados</div>
-                </div>
-                <div style="text-align:center; flex:1;">
-                  <div style="font-size:20px; font-weight:700; color:#dc2626;">${p.rejected}</div>
-                  <div style="font-size:10px; color:#9ca3af;">reprovados</div>
-                </div>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>`;
-    } else {
-      compEl.innerHTML = '';
-    }
-
-    document.getElementById('qaKpiCards').innerHTML = `
-      <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
-        ${scoreCard('Nota Geral', t, '#7c3aed')}
-        ${scoreCard('Casos Criticos', crit, '#dc2626')}
-        ${scoreCard('Amostra Aleatoria', rand, '#3b82f6')}
-      </div>`;
-
-    // By Reason chart
-    const reasons = data.byReason || [];
-    const maxR = Math.max(...reasons.map(r => r.count), 1);
-    document.getElementById('qaByReasonChart').innerHTML = reasons.length > 0 ? reasons.map(r => {
-      const pct = Math.round((r.count / maxR) * 100);
-      return `<div class="bar-row"><span class="bar-label">${r.label}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:#dc2626;"><span>${r.count}</span></div></div></div>`;
-    }).join('') : '<div class="empty" style="padding:16px;">Nenhuma reprovacao no periodo</div>';
-
-    // By Auditor
-    const auditors = data.byAuditor || [];
-    document.getElementById('qaByAuditorChart').innerHTML = auditors.length > 0 ? `<table>
-      <thead><tr><th>Auditor</th><th>Total</th><th>Aprovados</th><th>Reprovados</th><th>Taxa Aprov.</th></tr></thead>
-      <tbody>${auditors.map(a => {
-        const rate = a.total > 0 ? Math.round((a.approved / a.total) * 100) : 0;
-        const rateColor = rate >= 80 ? '#16a34a' : rate >= 50 ? '#f59e0b' : '#dc2626';
-        return `<tr>
-          <td><strong>${a.audited_by}</strong></td>
-          <td>${a.total}</td>
-          <td style="color:#16a34a;">${a.approved}</td>
-          <td style="color:#dc2626;">${a.rejected}</td>
-          <td style="color:${rateColor}; font-weight:600;">${rate}%</td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>` : '<div class="empty" style="padding:16px;">Nenhuma auditoria no periodo</div>';
-
-    // By Day chart
-    const days = data.byDay || [];
-    const maxD = Math.max(...days.map(d => d.total), 1);
-    document.getElementById('qaByDayChart').innerHTML = days.length > 0 ? days.map(d => {
-      const pct = Math.round((d.total / maxD) * 100);
-      const rejPct = d.total > 0 ? Math.round((d.rejected / d.total) * 100) : 0;
-      const dayLabel = new Date(d.day).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-      return `<div class="bar-row"><span class="bar-label">${dayLabel}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;"><span>${d.approved} aprov. / ${d.rejected} reprov.</span></div></div></div>`;
-    }).join('') : '<div class="empty" style="padding:16px;">Sem dados no periodo</div>';
-
-    // Recent Rejections
-    const rejections = data.recentRejections || [];
-    const reasonLabels = {
-      tom: 'Tom da conversa', precisao: 'Precisao', fluxo: 'Fluxo',
-      captura_dados: 'Captura de dados', escalacao: 'Escalacao incorreta',
-      informacao_errada: 'Info errada', nao_entendeu: 'Nao entendeu', outro: 'Outro',
-    };
-    const rBotColor = (name) => name === 'Eva' ? '#8b5cf6' : '#3b82f6';
-    const rBotBg = (name) => name === 'Eva' ? '#ede9fe' : '#dbeafe';
-    document.getElementById('qaRejectionsBody').innerHTML = rejections.length > 0 ? rejections.map(r => {
-      const rBot = r.pipeline_name || 'Ellder';
-      return `
-      <tr>
-        <td><span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; background:${rBotBg(rBot)}; color:${rBotColor(rBot)};">${rBot}</span></td>
-        <td><strong>${r.conversation_title || r.conversation_id?.substring(0, 12) + '...' || '-'}</strong></td>
-        <td>${(r.rejection_reason || '-').split(', ').map(rr => `<span class="tag tag-forwarded">${reasonLabels[rr.trim()] || rr.trim()}</span>`).join(' ')}${r.rejection_detail ? '<br><span style="font-size:11px; color:#6b7280;">' + r.rejection_detail + '</span>' : ''}</td>
-        <td style="font-size:12px; max-width:300px;">${r.notes || '-'}</td>
-        <td>${r.audited_by || '-'}</td>
-        <td style="white-space:nowrap; font-size:12px;">${fmtDate(r.audited_at)}</td>
-      </tr>`;
-    }).join('') : '<tr><td colspan="6" class="empty" style="padding:20px; text-align:center;">Nenhuma reprovacao no periodo</td></tr>';
-  }
-
-  // Render distribution bars
-  function renderDistribution(elementId, data, colors) {
-    const el = document.getElementById(elementId);
-    if (!data || data.length === 0) {
-      el.innerHTML = '<div class="empty" style="padding:16px;">Sem dados</div>';
-      return;
-    }
-    const maxCount = Math.max(...data.map(d => d.count), 1);
-    el.innerHTML = data.map((d, i) => {
-      const pct = Math.max(3, Math.round((d.count / maxCount) * 100));
-      const color = colors[i % colors.length];
-      const label = d.src ? `[${d.src}] ${d.value}` : d.value;
-      return `<div class="dist-bar">
-        <span class="label" title="${label}">${label}</span>
-        <div class="track"><div class="fill" style="width:${pct}%; background:${color};"><span>${d.count}</span></div></div>
-        <span class="count">${d.pct}%</span>
-      </div>`;
-    }).join('');
-  }
-
-  // Render cross-table (sentiment x outcome)
-  function renderCrossTable(elementId, data) {
-    const el = document.getElementById(elementId);
-    if (!data || data.length === 0) {
-      el.innerHTML = '<div class="empty" style="padding:16px;">Sem dados cruzados</div>';
-      return;
-    }
-
-    // Build pivot: sentiment -> outcome -> count
-    const pivot = {};
-    const outcomes = new Set();
-    for (const row of data) {
-      const sentiment = row.sentiment;
-      const outcome = row.forward_type
-        ? `${statusLabel(row.status)} (${row.forward_type})`
-        : statusLabel(row.status);
-      outcomes.add(outcome);
-      if (!pivot[sentiment]) pivot[sentiment] = {};
-      pivot[sentiment][outcome] = (pivot[sentiment][outcome] || 0) + row.count;
-    }
-
-    const outArr = [...outcomes];
-    const sentiments = Object.keys(pivot);
-
-    // Find max for highlighting
-    let maxVal = 0;
-    for (const s of sentiments) for (const o of outArr) maxVal = Math.max(maxVal, pivot[s]?.[o] || 0);
-
-    let html = '<table class="cross-table"><thead><tr><th></th>';
-    for (const o of outArr) html += `<th>${o}</th>`;
-    html += '<th>Total</th></tr></thead><tbody>';
-
-    for (const s of sentiments) {
-      let rowTotal = 0;
-      html += `<tr><td class="row-label">${s}</td>`;
-      for (const o of outArr) {
-        const val = pivot[s]?.[o] || 0;
-        rowTotal += val;
-        const isMax = val === maxVal && val > 0;
-        html += `<td class="${isMax ? 'highlight' : ''}">${val || '-'}</td>`;
-      }
-      html += `<td style="font-weight:600;">${rowTotal}</td></tr>`;
-    }
-
-    html += '</tbody></table>';
-    el.innerHTML = html;
-  }
-
-  // ====== Health / Saude ======
-  async function loadHealth() {
-    const data = await api('/api/health');
-
-    // Last event status
-    const lastEl = document.getElementById('lastEventStatus');
-    if (data.lastEvent) {
-      const ago = timeSince(data.lastEvent.received_at);
-      const mins = (Date.now() - new Date(data.lastEvent.received_at).getTime()) / 60000;
-      const cls = mins < 30 ? 'recent' : mins < 120 ? 'stale' : 'dead';
-      lastEl.innerHTML = `<span class="pulse ${cls}"></span>Ultimo evento: ${ago} (${data.lastEvent.event_type})`;
-    } else {
-      lastEl.innerHTML = '<span class="pulse dead"></span>Nenhum evento recebido';
-    }
-
-    // Checks
-    document.getElementById('healthChecks').innerHTML = data.checks.map(ch => {
-      const valueStr = ch.total !== undefined ? `${ch.value} / ${ch.total}` : `${ch.value}`;
-      return `<div class="check-card ${ch.status}">
-        <div class="check-info">
-          <div class="check-name">${ch.name}</div>
-          <div class="check-desc">${ch.description}</div>
-        </div>
-        <div>
-          <span class="check-value">${valueStr}</span>
-          <span class="tag tag-${ch.status}" style="margin-left:8px;">${ch.status === 'ok' ? 'OK' : ch.status === 'warning' ? 'ATENCAO' : 'CRITICO'}</span>
-        </div>
-      </div>`;
-    }).join('');
-
-    // Hourly chart
-    const hours = data.eventsPerHour.slice(0, 24).reverse();
-    const maxH = Math.max(...hours.map(h => h.count), 1);
-    document.getElementById('hourlyChart').innerHTML = hours.length > 0 ? hours.map(h => {
-      const pct = Math.round((h.count / maxH) * 100);
-      const hr = new Date(h.hour).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      return `<div class="bar-row">
-        <span class="bar-label">${hr}</span>
-        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"><span>${h.count}</span></div></div>
-      </div>`;
-    }).join('') : '<div class="empty">Sem dados nas ultimas 24h</div>';
-
-    // Event types 24h
-    document.getElementById('types24h').innerHTML = data.eventsByType24h.length > 0
-      ? data.eventsByType24h.map(e => `<li><span class="name">${e.event_type}</span><span class="count">${e.count}</span></li>`).join('')
-      : '<li class="empty">Nenhum evento nas ultimas 24h</li>';
-
-    // Gaps
-    const gapsSection = document.getElementById('gapsSection');
-    if (data.gaps.length > 0) {
-      gapsSection.style.display = 'block';
-      document.getElementById('gapsList').innerHTML = data.gaps.map(g => {
-        const from = new Date(g.from).toLocaleString('pt-BR');
-        const to = new Date(g.to).toLocaleString('pt-BR');
-        return `<li><span class="name">${from} - ${to}</span><span class="count" style="color:#dc2626;">${g.hours}h sem eventos</span></li>`;
-      }).join('');
-    } else {
-      gapsSection.style.display = 'none';
-    }
-
-    // Recent events log
-    document.getElementById('recentEventsBody').innerHTML = data.recentEvents.length > 0
-      ? data.recentEvents.map(e => `<tr>
-          <td><span class="tag tag-event">${e.event_type}</span></td>
-          <td title="${e.conversation_id}">${e.conversation_id?.substring(0, 12) || '-'}...</td>
-          <td>${e.agent_name || '-'}</td>
-          <td>${fmtDate(e.received_at)}</td>
-        </tr>`).join('')
-      : '<tr><td colspan="4" class="empty">Nenhum evento</td></tr>';
-  }
-
-  // ====== Sessions ======
-  async function loadSessions(page) {
-    currentPage.sessions = page || 1;
-    const status = document.getElementById('filterStatus').value;
-    const params = `?page=${currentPage.sessions}&limit=30` + (status ? `&status=${status}` : '');
-    const data = await api('/api/sessions' + params);
-
-    if (data.sessions.length === 0) {
-      document.getElementById('sessionsBody').innerHTML = '<tr><td colspan="7" class="empty">Nenhuma conversa encontrada.</td></tr>';
-      document.getElementById('sessionsPag').innerHTML = '';
-      return;
-    }
-
-    document.getElementById('sessionsBody').innerHTML = data.sessions.map(s => {
-      // Completeness dots: title, summary, smart fields (approx via summary presence)
-      const hasTitle = !!s.conversation_title;
-      const hasSummary = !!s.summary;
-      const hasForward = s.status === 'forwarded' || s.status === 'open'; // not needed if open
-      return `<tr>
-        <td title="${s.conversation_id}">${s.conversation_title || s.conversation_id?.substring(0, 12) + '...' || '-'}</td>
-        <td><span class="tag tag-${s.status || 'open'}">${statusLabel(s.status)}</span></td>
-        <td>${s.channel_name || '-'}</td>
-        <td>${s.forward_type ? `<span class="tag tag-forwarded">${s.forward_type}</span> ${s.forwarded_to || ''}` : '-'}</td>
-        <td><span class="completeness" title="Titulo / Resumo IA">
-          <span class="dot ${hasTitle ? 'filled' : ''}"></span>
-          <span class="dot ${hasSummary ? 'filled' : ''}"></span>
-        </span></td>
-        <td>${fmtDate(s.updated_at)}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="openSessionDetail('${s.conversation_id}')">Ver</button></td>
-      </tr>`;
-    }).join('');
-
-    renderPagination('sessionsPag', data.pagination, 'loadSessions');
-  }
-
-  // ====== Smart Fields ======
-  async function loadSmartFields(page) {
-    currentPage.sf = page || 1;
-    const field = document.getElementById('filterField').value;
-    const params = `?page=${currentPage.sf}&limit=30` + (field ? `&field=${encodeURIComponent(field)}` : '');
-    const data = await api('/api/smart-fields' + params);
-
-    const select = document.getElementById('filterField');
-    const current = select.value;
-    if (data.fieldNames && data.fieldNames.length > 0) {
-      const opts = '<option value="">Todos os campos</option>' +
-        data.fieldNames.map(f => `<option value="${f.field_name}" ${f.field_name === current ? 'selected' : ''}>${f.field_name} (${f.count})</option>`).join('');
-      select.innerHTML = opts;
-    }
-
-    if (data.smartFields.length === 0) {
-      document.getElementById('sfBody').innerHTML = '<tr><td colspan="5" class="empty">Nenhum smart field capturado ainda.</td></tr>';
-      document.getElementById('sfPag').innerHTML = '';
-      return;
-    }
-
-    document.getElementById('sfBody').innerHTML = data.smartFields.map(sf => `
-      <tr>
-        <td><strong>${sf.field_name}</strong></td>
-        <td>${sf.field_value || '-'}</td>
-        <td title="${sf.conversation_id}">${sf.conversation_title || sf.conversation_id?.substring(0, 12) + '...' || '-'}</td>
-        <td>${sf.session_status ? `<span class="tag tag-${sf.session_status}">${statusLabel(sf.session_status)}</span>` : '-'}</td>
-        <td>${fmtDate(sf.captured_at)}</td>
-      </tr>
-    `).join('');
-
-    renderPagination('sfPag', data.pagination, 'loadSmartFields');
-  }
-
-  // ====== Events ======
-  async function loadEvents(page) {
-    currentPage.events = page || 1;
-    const type = document.getElementById('filterEventType').value;
-    const params = `?page=${currentPage.events}&limit=30` + (type ? `&type=${encodeURIComponent(type)}` : '');
-    const data = await api('/api/events' + params);
-
-    const select = document.getElementById('filterEventType');
-    const current = select.value;
-    const types = [...new Set(data.events.map(e => e.event_type))];
-    if (types.length > 0 && select.options.length <= 1) {
-      select.innerHTML = '<option value="">Todos os tipos</option>' +
-        types.map(t => `<option value="${t}" ${t === current ? 'selected' : ''}>${t}</option>`).join('');
-    }
-
-    if (data.events.length === 0) {
-      document.getElementById('eventsBody').innerHTML = '<tr><td colspan="5" class="empty">Nenhum evento encontrado.</td></tr>';
-      document.getElementById('eventsPag').innerHTML = '';
-      return;
-    }
-
-    document.getElementById('eventsBody').innerHTML = data.events.map(e => `
-      <tr>
-        <td><span class="tag tag-event">${e.event_type}</span></td>
-        <td title="${e.conversation_id}">${e.conversation_id?.substring(0, 12) || '-'}...</td>
-        <td>${e.agent_name || '-'}</td>
-        <td>${fmtDate(e.event_timestamp || e.received_at)}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="showPayload('${e.id}', this)" data-payload='${escapeAttr(e.raw_payload)}'>JSON</button></td>
-      </tr>
-    `).join('');
-
-    renderPagination('eventsPag', data.pagination, 'loadEvents');
-  }
-
-  // ====== Session detail modal ======
-  async function openSessionDetail(convId) {
-    const data = await api('/api/session-detail?id=' + encodeURIComponent(convId));
-    const s = data.session;
-
-    let html = `<section>
-      <h3>Sessao</h3>
-      <dl class="detail-grid">
-        <dt>Conversa ID</dt><dd>${s.conversation_id}</dd>
-        <dt>Titulo</dt><dd>${s.conversation_title || '-'}</dd>
-        <dt>Status</dt><dd><span class="tag tag-${s.status}">${statusLabel(s.status)}</span></dd>
-        <dt>Canal</dt><dd>${s.channel_name || '-'}</dd>
-        <dt>Encaminhamento</dt><dd>${s.forward_type ? `${s.forward_type} -> ${s.forwarded_to || ''}` : '-'}</dd>
-        <dt>Resumo IA</dt><dd>${s.summary || '-'}</dd>
-        <dt>Criado</dt><dd>${fmtDate(s.created_at)}</dd>
-        <dt>Fechado</dt><dd>${fmtDate(s.closed_at)}</dd>
-        <dt>Atualizado</dt><dd>${fmtDate(s.updated_at)}</dd>
-      </dl>
-    </section>`;
-
-    if (data.smartFields.length > 0) {
-      html += `<section><h3>Smart Fields (${data.smartFields.length})</h3><table>
-        <thead><tr><th>Campo</th><th>Valor</th><th>Capturado</th></tr></thead>
-        <tbody>${data.smartFields.map(sf => `
-          <tr><td><strong>${sf.field_name}</strong></td><td>${sf.field_value}</td><td>${fmtDate(sf.captured_at)}</td></tr>
-        `).join('')}</tbody>
-      </table></section>`;
-    }
-
-    if (data.events.length > 0) {
-      html += `<section><h3>Eventos (${data.events.length})</h3><table>
-        <thead><tr><th>Tipo</th><th>Agente</th><th>Quando</th></tr></thead>
-        <tbody>${data.events.map(e => `
-          <tr><td><span class="tag tag-event">${e.event_type}</span></td><td>${e.agent_name || '-'}</td><td>${fmtDate(e.event_timestamp || e.received_at)}</td></tr>
-        `).join('')}</tbody>
-      </table></section>`;
-    }
-
-    document.getElementById('modalTitle').textContent = s.conversation_title || 'Conversa ' + s.conversation_id?.substring(0, 12);
-    document.getElementById('modalContent').innerHTML = html;
-    document.getElementById('modal').classList.add('active');
-  }
-
-  function closeModal() { document.getElementById('modal').classList.remove('active'); }
-  document.getElementById('modal').addEventListener('click', (e) => {
-    if (e.target.classList.contains('modal-overlay')) closeModal();
-  });
-
-  // ====== Reprocess smart fields ======
-  async function reprocessSmartFields() {
-    const btn = document.getElementById('reprocessBtn');
-    const st = document.getElementById('reprocessStatus');
-    btn.disabled = true; btn.textContent = 'Reprocessando...'; st.textContent = '';
-    try {
-      const data = await api('/api/reprocess-smart-fields', { method: 'POST' });
-      st.textContent = `${data.newSmartFields} novos campos de ${data.conversationsProcessed} conversas`;
-      st.style.color = data.newSmartFields > 0 ? '#16a34a' : '#6b7280';
-      await Promise.all([loadStats(), loadSmartFields(), loadKpis()]);
-    } catch (err) {
-      st.textContent = 'Erro: ' + err.message; st.style.color = '#dc2626';
-    } finally { btn.disabled = false; btn.textContent = 'Reprocessar Eventos'; }
-  }
-
-  // ====== Export CSV ======
-  function exportCSV(type) {
-    const url = `/api/export?type=${type}`;
-    const a = document.createElement('a');
-    // Download via fetch (auth via cookie)
-    fetch(url)
-      .then(r => {
-        if (!r.ok) throw new Error('Erro ao exportar');
-        return r.blob();
-      })
-      .then(blob => {
-        const blobUrl = URL.createObjectURL(blob);
-        a.href = blobUrl;
-        a.download = `${type}-${new Date().toISOString().slice(0,10)}.csv`;
-        a.click();
-        URL.revokeObjectURL(blobUrl);
-      })
-      .catch(err => alert('Erro: ' + err.message));
-  }
-
-  // ====== Webhook setup ======
-  async function testPipelineWebhook(bot) {
-    const result = document.getElementById('testPipelineResult');
-    const testId = 'test-' + bot.toLowerCase() + '-' + Date.now();
-    result.style.display = 'block';
-    result.style.color = '#6b7280';
-    result.textContent = 'Enviando teste para ' + bot + '...';
-    try {
-      const resp = await fetch('/api/webhook?bot=' + bot, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventType: 'session.opened',
-          data: {
-            conversationId: testId,
-            sessionId: 'sess-' + testId,
-            channelId: '13386',
-            channelName: 'Nuvemshop',
-            conversationTitle: 'TESTE - Pipeline ' + bot,
-            timestamp: new Date().toISOString()
-          }
-        })
-      });
-      const data = await resp.json();
-      if (data.received) {
-        result.style.color = '#16a34a';
-        result.innerHTML = 'Conversa de teste criada como <strong>' + bot + '</strong>! ID: ' + testId + '<br><span style="font-size:11px; color:#6b7280;">Filtre por "' + bot + '" na aba QA Audits ou Conversas para verificar.</span>';
-        refreshAll();
-      } else {
-        result.style.color = '#dc2626';
-        result.textContent = 'Erro: ' + JSON.stringify(data);
-      }
-    } catch (e) {
-      result.style.color = '#dc2626';
-      result.textContent = 'Erro: ' + e.message;
-    }
-  }
-
-  async function setupWebhook() {
-    const btn = document.getElementById('webhookBtn');
-    const result = document.getElementById('webhookResult');
-    btn.disabled = true; btn.textContent = 'Registrando...';
-    try {
-      const data = await api('/api/setup-webhook', { method: 'POST' });
-      result.style.display = 'block';
-      result.textContent = JSON.stringify(data, null, 2);
-    } catch (err) {
-      result.style.display = 'block';
-      result.textContent = 'Erro: ' + err.message;
-    } finally { btn.disabled = false; btn.textContent = 'Registrar Webhooks'; }
-  }
-
-  // ====== Show URLs ======
-  function showUrls() {
-    const base = window.location.origin;
-    document.getElementById('urlWebhookEllder').textContent = base + '/api/webhook?bot=Ellder';
-    document.getElementById('urlWebhookEva').textContent = base + '/api/webhook?bot=Eva';
-    document.getElementById('urlSessions').textContent = base + '/api/sessions';
-    document.getElementById('urlEvents').textContent = base + '/api/events';
-    document.getElementById('urlSf').textContent = base + '/api/smart-fields';
-    document.getElementById('urlStats').textContent = base + '/api/stats';
-    document.getElementById('urlKpis').textContent = base + '/api/kpis';
-    document.getElementById('urlHealth').textContent = base + '/api/health';
-    document.getElementById('urlAnalytics').textContent = base + '/api/kpis?view=insights';
-    document.getElementById('urlExport').textContent = base + '/api/export?type=sessions';
-  }
-
-  // ====== Show raw payload ======
-  function showPayload(id, btn) {
-    try {
-      const raw = btn.dataset.payload;
-      const parsed = JSON.parse(raw);
-      // Use modal instead of alert for better UX
-      document.getElementById('modalTitle').textContent = 'Payload do Evento';
-      document.getElementById('modalContent').innerHTML =
-        `<pre style="background:#f9fafb; padding:16px; border-radius:8px; font-size:12px; overflow:auto; max-height:60vh;">${JSON.stringify(parsed, null, 2)}</pre>`;
-      document.getElementById('modal').classList.add('active');
-    } catch {
-      alert(btn.dataset.payload || 'Sem payload');
-    }
-  }
-
-  // ====== Helpers ======
-  async function api(path, opts = {}) {
-    const res = await fetch(path, opts);
-    if (res.status === 401) { logout(); throw new Error('Nao autorizado'); }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  }
-
-  function fmtDate(d) {
-    if (!d) return '-';
-    try { return new Date(d).toLocaleString('pt-BR'); } catch { return d; }
-  }
-
-  function statusLabel(s) {
-    const m = { open: 'Aberta', closed: 'Fechada', forwarded: 'Encaminhada' };
-    return m[s] || s || '-';
-  }
-
-  function escapeAttr(s) {
-    if (!s) return '';
-    return s.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-  }
-
-  function timeSince(dateStr) {
-    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-    if (seconds < 60) return seconds + 's atras';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return minutes + 'min atras';
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return hours + 'h atras';
-    const days = Math.floor(hours / 24);
-    return days + 'd atras';
-  }
-
-  function renderPagination(elId, pag, fnName) {
-    if (!pag || pag.pages <= 1) {
-      document.getElementById(elId).innerHTML = '';
-      return;
-    }
-    document.getElementById(elId).innerHTML = `
-      <button ${pag.page <= 1 ? 'disabled' : ''} onclick="${fnName}(${pag.page - 1})">Anterior</button>
-      <span>Pagina ${pag.page} de ${pag.pages} (${pag.total} total)</span>
-      <button ${pag.page >= pag.pages ? 'disabled' : ''} onclick="${fnName}(${pag.page + 1})">Proxima</button>
-    `;
-  }
-</script>
-
+        const interval = setInterval(() => {
+            count--;
+            if (count > 0) {
+                countdownEl.textContent = count;
+                countdownEl.classList.remove('shake');
+                void countdownEl.offsetWidth;
+                countdownEl.classList.add('shake');
+                statusEl.innerHTML = '<span class="blink">_</span> T-minus ' + count + '...';
+            } else if (count === 0) {
+                countdownEl.textContent = '0';
+                countdownEl.style.color = '#ff0000';
+                statusEl.innerHTML = '<span class="blink">_</span> DETONATION IMMINENT';
+            } else {
+                clearInterval(interval);
+                countdownEl.style.display = 'none';
+                gifEl.classList.add('visible');
+                boomEl.style.display = 'block';
+                createParticles();
+                statusEl.innerHTML = 'Goodbye, old friend. You served us well.';
+                linkEl.style.animation = 'blink 0.5s 3';
+                document.body.style.background = '#1a0500';
+                setTimeout(() => {
+                    document.body.style.background = '#0a0a0a';
+                }, 200);
+            }
+        }, 1000);
+    </script>
 </body>
 </html>
