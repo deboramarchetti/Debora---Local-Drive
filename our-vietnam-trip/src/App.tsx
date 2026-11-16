@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, MemoryRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
 import { Banners } from './components/Banners';
+import { ViewerGate } from './components/ViewerGate';
 import { Overview } from './pages/Overview';
 import { DayPage, DayRedirect } from './pages/DayPage';
 import { MapPage } from './pages/MapPage';
@@ -36,6 +37,7 @@ export default function App() {
             </Routes>
           </main>
           <BottomNav />
+          <ViewerGate />
         </PrivateProvider>
       </OfflineProvider>
     </Router>

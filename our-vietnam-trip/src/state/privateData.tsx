@@ -4,6 +4,7 @@ import type { PrivateData, PrivateEntry } from '../data/types';
 import { decryptPrivate, type Envelope } from '../lib/crypto';
 import { localPrivate } from '../lib/localStore';
 import { localStore } from '../data';
+import { partyKey } from '../lib/viewer';
 
 /**
  * Booking codes, ticket numbers and contacts are shipped *encrypted*
@@ -67,9 +68,9 @@ export function PrivateProvider({ children }: { children: React.ReactNode }) {
   // Codes typed on this phone are merged over the published (encrypted) ones.
   const get = (id?: string) => {
     if (!id || !data) return undefined;
-    const pub = data[id];
-    const loc = LOCAL_PRIVATE[id];
-    return pub || loc ? { ...pub, ...loc } : undefined;
+    // Shared codes (e.g. one booking for all) + this party's own codes.
+    const parts = [data[id], data[partyKey(id)], LOCAL_PRIVATE[id], LOCAL_PRIVATE[partyKey(id)]].filter(Boolean);
+    return parts.length ? Object.assign({}, ...parts) : undefined;
   };
   return <PrivateCtx.Provider value={{ state, get, unlock, lock, passphrase }}>{children}</PrivateCtx.Provider>;
 }

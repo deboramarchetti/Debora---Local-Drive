@@ -7,16 +7,17 @@ import { hasLocalChanges, mergeLocal, saveLocal } from '../lib/localStore';
 import { fmtDayMonthShort, fmtWeekdayShort } from '../lib/time';
 import { usePrivate } from '../state/privateData';
 import { BOOKING_LABEL } from './Reservations';
+import { VIEWER, missingFor, partyKey, viewerName } from '../lib/viewer';
 
 /* ------------------------------------------------------------- the lists */
 
-type Target = { type: 'booking' | 'flight' | 'hotel'; id: string; title: string; date: string; priority?: Priority; bookBy?: string; missing?: string[]; notes?: string; local?: boolean; status?: Status };
+type Target = { type: 'booking' | 'flight' | 'hotel'; id: string; title: string; date: string; priority?: Priority; bookBy?: string; missing?: string[]; notes?: string; local?: boolean; status?: Status; perParty?: boolean };
 
 function collect() {
   const all: Target[] = [
-    ...model.bookings.map((b) => ({ type: 'booking' as const, id: b.id, title: b.title, date: b.date, priority: b.priority, bookBy: b.bookBy, missing: b.missing, notes: b.notes, status: b.status, local: localStore.items.some((i) => i.id === b.id) })),
-    ...model.flights.map((f) => ({ type: 'flight' as const, id: f.id, title: `Voo ${f.from} → ${f.to}${f.flightNumber ? ` · ${f.flightNumber}` : ''}`, date: f.departDate, priority: f.priority, bookBy: f.bookBy, missing: f.missing, status: f.status })),
-    ...model.hotels.map((h) => ({ type: 'hotel' as const, id: h.id, title: model.place(h.placeId)?.name ?? h.id, date: h.checkIn, priority: h.priority, bookBy: h.bookBy, missing: h.missing, status: h.status })),
+    ...model.bookings.map((b) => ({ type: 'booking' as const, id: b.id, title: b.title, date: b.date, priority: b.priority, bookBy: b.bookBy, missing: missingFor(b), notes: b.notes, status: b.status, perParty: b.perParty, local: localStore.items.some((i) => i.id === b.id) })),
+    ...model.flights.map((f) => ({ type: 'flight' as const, id: f.id, title: `Voo ${f.from} → ${f.to}${f.flightNumber ? ` · ${f.flightNumber}` : ''}`, date: f.departDate, priority: f.priority, bookBy: f.bookBy, missing: missingFor(f), status: f.status, perParty: f.perParty })),
+    ...model.hotels.map((h) => ({ type: 'hotel' as const, id: h.id, title: model.place(h.placeId)?.name ?? h.id, date: h.checkIn, priority: h.priority, bookBy: h.bookBy, missing: missingFor(h), status: h.status, perParty: h.perParty })),
   ];
   const rank = { high: 0, medium: 1, low: 2 } as const;
   const toBook = all.filter((t) => t.status === 'pending').sort((a, b) => rank[a.priority ?? 'low'] - rank[b.priority ?? 'low'] || a.date.localeCompare(b.date));
@@ -65,7 +66,7 @@ export function TodoPanel() {
 
       {missing.length > 0 && (
         <section>
-          <h3 className="mb-2 flex items-baseline gap-2 px-5 font-display text-[19px]">Reservado, mas faltam dados <span className="font-sans text-[13px] text-ink-3">{missing.length}</span></h3>
+          <h3 className="mb-2 flex items-baseline gap-2 px-5 font-display text-[19px]">Reservado, mas faltam dados{VIEWER ? ` · ${viewerName()}` : ''} <span className="font-sans text-[13px] text-ink-3">{missing.length}</span></h3>
           <ul className="card mx-4 divide-y divide-line">
             {missing.map((t) => (
               <li key={t.id} className="flex items-start gap-3 px-4 py-3">
@@ -107,9 +108,10 @@ function LocalChanges({ onEdit }: { onEdit: (t: Target) => void }) {
       <h3 className="mb-1 px-5 font-display text-[19px]">Alterações feitas no app</h3>
       <p className="mb-2 px-5 text-[12.5px] text-ink-3">Salvas neste celular. Use "Compartilhar com o grupo" para enviar aos outros.</p>
       <ul className="card mx-4 divide-y divide-line text-[13.5px]">
-        {edits.map((id) => {
+        {edits.map((key) => {
+          const [id, party] = key.split('@');
           const name = model.booking(id)?.title ?? (model.flight(id) ? `Voo ${model.flight(id)!.from} → ${model.flight(id)!.to}` : model.place(model.hotel(id)?.placeId)?.name) ?? id;
-          return <li key={id} className="px-4 py-2.5"><span className="text-ink-3">Atualizado:</span> {name}</li>;
+          return <li key={key} className="px-4 py-2.5"><span className="text-ink-3">{party ? `Códigos de ${viewerName(party) ?? party}:` : 'Atualizado:'}</span> {name}</li>;
         })}
         {items.map((it) => (
           <li key={it.id} className="flex items-center gap-2 px-4 py-2.5">
@@ -133,7 +135,9 @@ const KINDS: BookingKind[] = ['tour', 'transfer', 'car', 'train', 'bus', 'boat',
 function EditSheet({ target, onClose }: { target?: Target; onClose: () => void }) {
   const isNew = !target;
   const existingItem = target?.local ? localStore.items.find((i) => i.id === target.id) : undefined;
-  const prev: Partial<LocalEdit> = existingItem ?? (target ? localStore.edits[target.id] ?? {} : {});
+  // Per-party items (same hotel, separate reservations): codes are saved for this phone's party.
+  const splitKey = target?.perParty && VIEWER ? partyKey(target.id) : undefined;
+  const prev: Partial<LocalEdit> = existingItem ?? (target ? { ...localStore.edits[target.id], ...(splitKey ? localStore.edits[splitKey] : {}) } : {});
   const [f, setF] = useState({
     title: existingItem?.title ?? '',
     kind: (existingItem?.kind ?? 'tour') as BookingKind,
@@ -161,6 +165,10 @@ function EditSheet({ target, onClose }: { target?: Target; onClose: () => void }
       const item: LocalItem = { ...edit, id: existingItem?.id ?? `local-${Date.now().toString(36)}`, kind: f.kind, title: f.title.trim(), date: f.date, status: f.status };
       const i = localStore.items.findIndex((x) => x.id === item.id);
       if (i >= 0) localStore.items[i] = item; else localStore.items.push(item);
+    } else if (splitKey) {
+      const { bookingRef, phone, contact, ...shared } = edit;
+      localStore.edits[target!.id] = shared;
+      localStore.edits[splitKey] = clean({ bookingRef, phone, contact, updatedAt: now });
     } else {
       localStore.edits[target!.id] = edit;
     }
@@ -208,6 +216,7 @@ function EditSheet({ target, onClose }: { target?: Target; onClose: () => void }
           {type === 'flight' && <label className={label}>Nº do voo<input className={input} value={f.flightNumber} onChange={set('flightNumber')} placeholder="Ex.: VJ 123" /></label>}
           {type !== 'hotel' && <label className={label}>{type === 'flight' ? 'Companhia' : 'Empresa / operadora'}<input className={input} value={f.provider} onChange={set('provider')} /></label>}
           {type === 'booking' && <label className={label}>Ponto de encontro<input className={input} value={f.meetingPoint} onChange={set('meetingPoint')} placeholder="Ex.: buscam no hotel" /></label>}
+          {splitKey && <p className="rounded-xl bg-paper px-3 py-2 text-[12px] text-ink-2">Código, telefone e contato ficam como reserva de <b>{viewerName()}</b>. Horário e observações valem para todos.</p>}
           <div className="grid grid-cols-2 gap-3">
             <label className={label}>Código / localizador<input className={input} value={f.bookingRef} onChange={set('bookingRef')} autoCapitalize="characters" /></label>
             <label className={label}>Telefone / WhatsApp<input type="tel" className={input} value={f.phone} onChange={set('phone')} /></label>

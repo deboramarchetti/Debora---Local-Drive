@@ -5,6 +5,7 @@ import { model } from '../data';
 import { BookingCard, FlightCard, HotelCard } from '../components/Reservations';
 import { EmptyState, Segmented } from '../components/ui';
 import { TodoPanel, todoCounts } from '../components/Todo';
+import { ViewerSwitch } from '../components/ViewerGate';
 import { usePrivate } from '../state/privateData';
 
 type Tab = 'all' | 'todo' | 'flights' | 'hotels' | 'bookings';
@@ -25,6 +26,7 @@ export function Reservations() {
       <header className="px-5 pb-4 pt-6">
         <div className="eyebrow mb-1">Central de informações</div>
         <h1 className="text-[32px] font-normal leading-tight">Reservas</h1>
+        <div className="mt-1"><ViewerSwitch /></div>
         <div className="mt-4">
           <Segmented<Tab> value={tab} onChange={setTab} options={[
             { value: 'all', label: 'Tudo' }, { value: 'todo', label: `A fazer${todoCounts().toBook ? ` (${todoCounts().toBook})` : ''}` }, { value: 'flights', label: 'Voos' }, { value: 'hotels', label: 'Hotéis' }, { value: 'bookings', label: 'Passeios' },

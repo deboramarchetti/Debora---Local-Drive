@@ -59,7 +59,16 @@ export function applyLocal(data: TripData, s: LocalStore): TripData {
   const d: TripData = structuredClone(data);
   const appendNote = (base: string | undefined, add?: string) => (add ? (base ? `${base}\n${add}` : add) : base);
 
+  // Codes typed for one party ("id@party") count as that party's confirmation.
+  for (const [key, e] of Object.entries(s.edits)) {
+    const [id, party] = key.split('@');
+    if (!party || !e.bookingRef) continue;
+    const t = d.hotels.find((x) => x.id === id) ?? d.flights.find((x) => x.id === id) ?? d.bookings.find((x) => x.id === id);
+    if (t && !t.confirmations?.includes(party)) t.confirmations = [...(t.confirmations ?? []), party];
+  }
+
   for (const [id, e] of Object.entries(s.edits)) {
+    if (id.includes('@')) continue;
     const b = d.bookings.find((x) => x.id === id);
     if (b) {
       if (e.status) b.status = e.status;

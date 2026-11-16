@@ -170,3 +170,27 @@ describe('changes made in the app', () => {
     await expect(decryptJSON(env, 'outra-senha-xx')).rejects.toBeTruthy();
   });
 });
+
+describe('per-party view (same hotels, separate reservations)', () => {
+  it('shows each party only its own missing confirmations', async () => {
+    const { missingFor } = await import('../src/lib/viewer');
+    const m = buildModel(tripData);
+    const lr = m.hotel('h-little-riverside')!;
+    expect(missingFor(lr, 'casal')).toEqual([]);
+    expect(missingFor(lr, 'arthur')).toEqual(['sua confirmação (código, PIN)']);
+    expect(missingFor(lr, undefined)).toEqual(['confirmação de Arthur']);
+    expect(missingFor(m.flight('hui-sgn')!, 'arthur')).toEqual([]); // one VietJet booking for all three
+    expect(missingFor(m.flight('sgn-doh')!, 'casal')).toEqual(['bilhete da Débora (o PDF enviado é só do Renato)']);
+    expect(missingFor(m.flight('sgn-doh')!, 'arthur')).toEqual(['sua confirmação (código, PIN)']);
+    expect(missingFor(m.hotel('h-la-lua')!, 'casal')).toEqual(['endereço e horários de check-in/check-out', 'sua confirmação (código, PIN)']);
+  });
+  it('a code typed by Arthur in the app counts as his confirmation only', async () => {
+    const { applyLocal } = await import('../src/lib/localStore');
+    const { missingFor } = await import('../src/lib/viewer');
+    const store = { edits: { 'h-little-riverside@arthur': { bookingRef: '1234.567.890', updatedAt: '2026-11-17T00:00:00Z' } }, items: [] };
+    const m = buildModel(applyLocal(tripData, store));
+    expect(m.hotel('h-little-riverside')!.confirmations).toEqual(['casal', 'arthur']);
+    expect(missingFor(m.hotel('h-little-riverside')!, 'arthur')).toEqual([]);
+    expect(m.hotel('h-la-lua')!.confirmations).toEqual([]);
+  });
+});

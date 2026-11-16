@@ -54,6 +54,16 @@ export interface Trip {
   dataStatus: 'placeholder' | 'imported';
   /** Free text shown on the overview (optional). */
   intro?: string;
+  /**
+   * Groups that hold their own reservations (e.g. a couple and a friend).
+   * Each phone picks one; it then sees that group's booking codes and to-dos.
+   */
+  parties?: Party[];
+}
+
+export interface Party {
+  id: string;
+  name: string;
 }
 
 export interface Traveler {
@@ -121,6 +131,12 @@ interface Bookable {
   /** When to book it (itinerary table), for pending items. */
   bookBy?: string;
   priority?: Priority;
+  /** Each party has its own reservation for this (same hotel/flight, different codes). */
+  perParty?: boolean;
+  /** Parties whose confirmation is already in the app (only for perParty items). */
+  confirmations?: string[];
+  /** Missing details that concern only one party. */
+  missingFor?: Record<string, string[]>;
 }
 
 export interface Hotel extends Bookable {

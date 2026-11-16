@@ -27,6 +27,9 @@ try {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message + ' @ ' + (e.stack ?? '').split('\n').slice(0,3).join(' ')));
   await page.goto(BASE + '/');
+  // First open asks who is using the phone.
+  const who = page.getByRole('button', { name: 'Débora e Renato' });
+  if (await who.isVisible({ timeout: 3000 }).catch(() => false)) { await who.click(); await page.waitForLoadState('load'); }
   await page.waitForFunction(() => navigator.serviceWorker?.ready.then((r) => !!r.active), null, { timeout: 30000 });
   const btn = page.getByRole('button', { name: /Save Trip Offline|Verificar novamente/ });
   await btn.scrollIntoViewIfNeeded();
