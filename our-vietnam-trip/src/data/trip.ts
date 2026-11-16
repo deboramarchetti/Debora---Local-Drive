@@ -23,12 +23,15 @@ const cities: City[] = [
   { id: 'ha-long', name: 'Ha Long Bay', localName: 'Vịnh Hạ Long', region: 'Norte', coords: { lat: 20.9101, lng: 107.1839, verified: false }, artHue: 185, tagline: 'Paisagem e barco' },
   { id: 'hoi-an', name: 'Hoi An', localName: 'Hội An', region: 'Centro', coords: { lat: 15.8801, lng: 108.338, verified: false }, artHue: 38, tagline: 'Charme e descanso' },
   { id: 'hue', name: 'Hue', localName: 'Huế', region: 'Centro', coords: { lat: 16.4637, lng: 107.5909, verified: false }, artHue: 280, mapLabel: 'left', tagline: 'Vietnã imperial' },
+  { id: 'doha', name: 'Doha', region: 'Catar · stopover', coords: { lat: 25.2854, lng: 51.531, verified: false }, artHue: 30, abroad: true },
   { id: 'ho-chi-minh', name: 'Ho Chi Minh City', localName: 'Thành phố Hồ Chí Minh', region: 'Sul', coords: { lat: 10.7769, lng: 106.7009, verified: false }, artHue: 345, tagline: 'História, metrópole e Delta do Mekong' },
 ];
 
 // ---------------------------------------------------------------- places
 const ll = (lat: number, lng: number) => ({ lat, lng, verified: false });
 const places: Place[] = [
+  // Doha stopover (address from the Qatar Airways booking confirmation)
+  { id: 'millennium-plaza-doha', name: 'Millennium Plaza Doha', cityId: 'doha', kind: 'hotel', address: '231 Suhaim Bin Hamad St., Doha, Qatar' },
   // Hanoi
   { id: 'han-airport', name: 'Noi Bai International Airport', cityId: 'hanoi', kind: 'airport', mapsQuery: 'Noi Bai International Airport', coords: ll(21.2187, 105.8042) },
   { id: 'oriental-jade', name: 'Oriental Jade', cityId: 'hanoi', kind: 'hotel', mapsQuery: 'The Oriental Jade Hotel, Hanoi' },
@@ -82,20 +85,20 @@ const airports: Airport[] = [
 ];
 
 // --------------------------------------------------------------- flights
-// International legs: sheet "Calendar" (times local). Airline from "Costs Control" (QATAR AIRWAYS).
-// Flight numbers were not provided.
+// International legs: Qatar Airways confirmations (outbound QZ1Z5BDQ screenshot, return e-ticket PDF).
 const flights: Flight[] = [
-  { id: 'gru-doh', airline: 'Qatar Airways', from: 'GRU', to: 'DOH', departDate: '2026-11-20', departTime: '20:25', arriveDate: '2026-11-21', arriveTime: '16:00', status: 'confirmed', notes: 'Ida. Stopover em Doha antes do voo para Hanói.' },
-  { id: 'doh-han', airline: 'Qatar Airways', from: 'DOH', to: 'HAN', departDate: '2026-11-23', departTime: '01:50', arriveDate: '2026-11-23', arriveTime: '12:20', status: 'confirmed', notes: 'Chegada em Hanói. O roteiro (doc) diz "12h"; a planilha de voos diz 12:20.' },
+  { id: 'gru-doh', airline: 'Qatar Airways', flightNumber: 'QR 780', from: 'GRU', to: 'DOH', departDate: '2026-11-20', departTime: '20:25', arriveDate: '2026-11-21', arriveTime: '16:00', departTerminal: '3', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', notes: 'Ida. Stopover em Doha (Millennium Plaza Doha) antes do voo para Hanói.' },
+  { id: 'doh-han', airline: 'Qatar Airways', flightNumber: 'QR 976', from: 'DOH', to: 'HAN', departDate: '2026-11-23', departTime: '01:50', arriveDate: '2026-11-23', arriveTime: '12:20', arriveTerminal: '2', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', notes: 'Chegada em Hanói.' },
   { id: 'hph-dad', from: 'HPH', to: 'DAD', departDate: '2026-11-28', departTime: '16:15', arriveDate: '2026-11-28', arriveTime: '17:30', status: 'confirmed', notes: 'Voo direto Hai Phong (Cat Bi) → Da Nang. Companhia e número do voo não informados.' },
   { id: 'hui-sgn', from: 'HUI', to: 'SGN', departDate: '2026-12-02', status: 'pending', notes: 'Horário, companhia e status da reserva não informados no roteiro. A planilha de tarefas marca "Voos internos: Done" — confirmar.' },
-  { id: 'sgn-doh', airline: 'Qatar Airways', from: 'SGN', to: 'DOH', departDate: '2026-12-06', departTime: '19:40', arriveDate: '2026-12-06', arriveTime: '23:40', status: 'confirmed', notes: 'Na conexão em Doha: lounge, comida, banho e descanso.' },
-  { id: 'doh-gru', airline: 'Qatar Airways', from: 'DOH', to: 'GRU', departDate: '2026-12-07', departTime: '00:25', arriveDate: '2026-12-07', arriveTime: '09:30', status: 'confirmed', notes: 'Último trecho, para São Paulo.' },
+  { id: 'sgn-doh', airline: 'Qatar Airways', flightNumber: 'QR 971', from: 'SGN', to: 'DOH', departDate: '2026-12-06', departTime: '19:40', arriveDate: '2026-12-06', arriveTime: '23:40', departTerminal: '2', baggage: 'Economy · 2 malas (2PC)', status: 'confirmed', notes: 'Qatar recomenda chegar ao aeroporto 3h antes; check-in online abre 48h antes. Na conexão em Doha: lounge, comida, banho e descanso.' },
+  { id: 'doh-gru', airline: 'Qatar Airways', flightNumber: 'QR 785', from: 'DOH', to: 'GRU', departDate: '2026-12-07', departTime: '00:25', arriveDate: '2026-12-07', arriveTime: '09:30', arriveTerminal: '3', baggage: 'Economy · 2 malas (2PC)', status: 'confirmed', notes: 'Último trecho, para São Paulo.' },
 ];
 
 // ---------------------------------------------------------------- hotels
 // Only bookings marked "RESERVADO" in the doc. Ho Chi Minh City: not booked yet.
 const hotels: Hotel[] = [
+  { id: 'h-millennium-doha', placeId: 'millennium-plaza-doha', checkIn: '2026-11-21', checkOut: '2026-11-22', bookedVia: 'Qatar Airways (pacote voo + hotel)', status: 'pending', notes: 'Stopover de ida. As datas do hotel não aparecem na parte da confirmação enviada; o roteiro diz 1 noite (check-out 22/11 é uma suposição — confirmar). O voo para Hanói sai 23/11 à 01:50.' },
   { id: 'h-oriental-jade', placeId: 'oriental-jade', checkIn: '2026-11-23', checkOut: '2026-11-25', bookedVia: 'Booking.com', status: 'confirmed' },
   { id: 'h-la-lua', placeId: 'la-lua', checkIn: '2026-11-25', checkOut: '2026-11-27', bookedVia: 'Booking.com', status: 'confirmed' },
   { id: 'h-orchid-cruise', placeId: 'orchid-cruise', checkIn: '2026-11-27', checkOut: '2026-11-28', roomType: 'Cruzeiro Ha Long / Lan Ha 2D1N — noite a bordo', status: 'confirmed', notes: 'Embarque próximo ao almoço. Normalmente inclui navegação, caiaque, cavernas ou ilhas, sunset no deck e jantar.' },

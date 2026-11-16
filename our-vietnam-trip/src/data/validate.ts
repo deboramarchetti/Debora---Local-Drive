@@ -55,7 +55,7 @@ export function validateTrip(data: TripData): Issue[] {
   }
 
   // --- places / cities --------------------------------------------------------
-  for (const c of data.cities) checkCoords(`city:${c.id}`, c.coords);
+  for (const c of data.cities) if (!c.abroad) checkCoords(`city:${c.id}`, c.coords);
   for (const p of data.places) {
     if (!cityIds.has(p.cityId)) err(`place:${p.id}`, `unknown cityId "${p.cityId}"`);
     if (p.coords) checkCoords(`place:${p.id}`, p.coords);

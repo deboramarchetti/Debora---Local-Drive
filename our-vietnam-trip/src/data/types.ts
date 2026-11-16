@@ -73,6 +73,8 @@ export interface City {
   tagline?: string;
   /** Hue of the generated cover art when there is no photo (0–360). */
   artHue?: number;
+  /** Outside Vietnam (e.g. the Doha stopover): not drawn on the Vietnam map. */
+  abroad?: boolean;
   /** Which side of the dot the label goes on in the overview map. */
   mapLabel?: 'left' | 'right';
 }

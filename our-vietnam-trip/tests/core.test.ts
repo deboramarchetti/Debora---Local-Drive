@@ -74,12 +74,17 @@ describe('itinerary data', () => {
     expect([f('sgn-doh').departTime, f('sgn-doh').arriveTime]).toEqual(['19:40', '23:40']);
     expect([f('doh-gru').departDate, f('doh-gru').departTime, f('doh-gru').arriveTime]).toEqual(['2026-12-07', '00:25', '09:30']);
     expect(f('hui-sgn').departTime).toBeUndefined();
-    // Nothing invented: no addresses, no flight numbers, no booking codes in public data
-    expect(m.places.every((p) => !p.address)).toBe(true);
-    expect(m.flights.every((x) => !x.flightNumber)).toBe(true);
-    expect(JSON.stringify(tripData)).not.toMatch(/7HD4WN|7HQJVM/);
+    // Qatar confirmations
+    expect(['gru-doh', 'doh-han', 'sgn-doh', 'doh-gru'].map((id) => f(id).flightNumber)).toEqual(['QR 780', 'QR 976', 'QR 971', 'QR 785']);
+    expect([f('doh-han').arriveTerminal, f('sgn-doh').departTerminal]).toEqual(['2', '2']);
+    // Nothing invented: only addresses that came from a confirmation; no codes in public data
+    expect(m.places.filter((p) => p.address).map((p) => p.id)).toEqual(['millennium-plaza-doha']);
+    expect(f('hph-dad').flightNumber).toBeUndefined();
+    expect(JSON.stringify(tripData)).not.toMatch(/7HD4WN|7HQJVM|QZ1Z5BDQ|157214|873403289/);
+    // Doha stopover is not part of the Vietnam route
+    expect(m.route.some((r) => r.cityId === 'doha')).toBe(false);
     // Only bookings marked RESERVADO are confirmed hotels
-    expect(m.hotels.map((h) => h.placeId)).toEqual(['oriental-jade', 'la-lua', 'orchid-cruise', 'little-riverside', 'melia-vinpearl-hue']);
+    expect(m.hotels.map((h) => h.placeId)).toEqual(['millennium-plaza-doha', 'oriental-jade', 'la-lua', 'orchid-cruise', 'little-riverside', 'melia-vinpearl-hue']);
     expect(m.bookings.every((b) => b.status === 'pending')).toBe(true);
   });
   it('day 6 schedule keeps transfer before the 16:15 flight', () => {
