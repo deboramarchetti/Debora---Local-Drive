@@ -103,6 +103,7 @@ export function FlightCard({ flight: f, compact }: { flight: Flight; compact?: b
       </div>
       {!compact && (f.baggage || f.notes || from || to) && (
         <div className="space-y-2 border-t border-line px-4 py-3">
+          {f.seats && <Row icon={User}>Assentos {f.seats}</Row>}
           {from && to && <div className="text-[12px] text-ink-3">{from.name} → {to.name} · horários locais</div>}
           {f.baggage && <Row icon={Info}>{f.baggage}</Row>}
           {f.notes && <Row icon={Info}>{f.notes}</Row>}
@@ -149,6 +150,7 @@ export function HotelCard({ hotel: h, compact }: { hotel: Hotel; compact?: boole
       {!compact && (
         <div className="mt-3 space-y-2">
           {p?.address && <Row icon={MapPin}>{p.address}</Row>}
+          {p?.phone && <Row icon={Phone}><a className="underline decoration-line underline-offset-2" href={`tel:${p.phone.replace(/[^+\d]/g, '')}`}>{p.phone}</a></Row>}
           {h.roomType && <Row icon={Bed}>{h.roomType}</Row>}
           {h.bookedVia && <Row icon={CalendarCheck}>Reservado via {h.bookedVia}</Row>}
           {h.notes && <Row icon={Info}>{h.notes}</Row>}

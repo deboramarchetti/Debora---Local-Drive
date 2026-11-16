@@ -96,7 +96,7 @@ export function Segmented<T extends string>({ value, onChange, options }: { valu
           role="tab"
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`flex-1 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${value === o.value ? 'bg-card text-ink shadow-sm' : 'text-ink-3'}`}
+          className={`flex-1 whitespace-nowrap rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors ${value === o.value ? 'bg-card text-ink shadow-sm' : 'text-ink-3'}`}
         >
           {o.label}
         </button>

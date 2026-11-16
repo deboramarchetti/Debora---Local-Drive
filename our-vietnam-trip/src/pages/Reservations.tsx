@@ -4,15 +4,17 @@ import { useLocation, useSearchParams } from 'react-router-dom';
 import { model } from '../data';
 import { BookingCard, FlightCard, HotelCard } from '../components/Reservations';
 import { EmptyState, Segmented } from '../components/ui';
+import { TodoPanel, todoCounts } from '../components/Todo';
 import { usePrivate } from '../state/privateData';
 
-type Tab = 'all' | 'flights' | 'hotels' | 'bookings';
+type Tab = 'all' | 'todo' | 'flights' | 'hotels' | 'bookings';
 
 export function Reservations() {
   const [params, setParams] = useSearchParams();
   const tab = (params.get('tab') as Tab) ?? 'all';
   const setTab = (v: Tab) => setParams((p) => { v === 'all' ? p.delete('tab') : p.set('tab', v); return p; }, { replace: true });
   const show = (t: Tab) => tab === 'all' || tab === t;
+  useEffect(() => { if (location.hash.includes('sync=') && tab !== 'todo') setTab('todo'); }, []); // eslint-disable-line
 
   const flights = [...model.flights].sort((a, b) => (a.departDate + (a.departTime ?? '')).localeCompare(b.departDate + (b.departTime ?? '')));
   const hotels = [...model.hotels].sort((a, b) => a.checkIn.localeCompare(b.checkIn));
@@ -25,12 +27,15 @@ export function Reservations() {
         <h1 className="text-[32px] font-normal leading-tight">Reservas</h1>
         <div className="mt-4">
           <Segmented<Tab> value={tab} onChange={setTab} options={[
-            { value: 'all', label: 'Tudo' }, { value: 'flights', label: 'Voos' }, { value: 'hotels', label: 'Hotéis' }, { value: 'bookings', label: 'Passeios' },
+            { value: 'all', label: 'Tudo' }, { value: 'todo', label: `A fazer${todoCounts().toBook ? ` (${todoCounts().toBook})` : ''}` }, { value: 'flights', label: 'Voos' }, { value: 'hotels', label: 'Hotéis' }, { value: 'bookings', label: 'Passeios' },
           ]} />
         </div>
       </header>
 
       <UnlockCard />
+
+      {tab === 'todo' && <div className="mt-6"><TodoPanel /></div>}
+      {tab === 'all' && <TodoSummary onOpen={() => setTab('todo')} />}
 
       {show('flights') && (
         <Section title="Voos" count={flights.length}>
@@ -110,5 +115,20 @@ function UnlockCard() {
       </div>
       {error && <div className="mt-2 text-[12.5px] text-lacquer">Senha incorreta.</div>}
     </form>
+  );
+}
+
+function TodoSummary({ onOpen }: { onOpen: () => void }) {
+  const c = todoCounts();
+  if (!c.toBook && !c.missing) return null;
+  return (
+    <button onClick={onOpen} className="tap card mx-5 mt-5 flex w-[calc(100%-2.5rem)] items-center gap-3 p-4 text-left">
+      <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-[15px] font-bold text-white ${c.urgent ? 'bg-lacquer' : 'bg-gold'}`}>{c.toBook}</span>
+      <span className="min-w-0 flex-1 text-[13.5px]">
+        <span className="block font-semibold">A fazer antes da viagem</span>
+        <span className="block text-ink-3">{c.toBook} para reservar{c.urgent ? ` (${c.urgent} urgente)` : ''} · {c.missing} com dados faltando</span>
+      </span>
+      <span className="text-[13px] font-semibold text-lacquer">Ver</span>
+    </button>
   );
 }

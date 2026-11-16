@@ -16,7 +16,7 @@ export function mapsSearchUrl(p: MapsPlace): string {
   if (p.googlePlaceId) {
     params.set('query', text || `${p.coords?.lat},${p.coords?.lng}`);
     params.set('query_place_id', p.googlePlaceId);
-  } else if (p.coords?.verified) {
+  } else if (p.coords?.verified && !p.address) {
     params.set('query', `${p.coords.lat},${p.coords.lng}`);
   } else {
     params.set('query', text);

@@ -9,6 +9,7 @@ import { VietnamMap } from '../components/VietnamMap';
 import { OfflineCard } from '../components/OfflineCard';
 import { FlightCard } from '../components/Reservations';
 import { EmptyState, PlaceholderBadge, SectionTitle } from '../components/ui';
+import { todoCounts } from '../components/Todo';
 
 export function Overview() {
   const today = useToday();
@@ -64,6 +65,7 @@ export function Overview() {
         </div>
       )}
       {trip.intro && <p className="mx-5 mt-5 text-[14px] text-ink-2">{trip.intro}</p>}
+      <TodoCard />
 
       {/* Route */}
       <section className="mt-10">
@@ -210,6 +212,21 @@ function QuickLink({ to, label, sub }: { to: string; label: string; sub: string 
       <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">Central</div>
       <div className="mt-1.5 font-display text-[18px] leading-tight">{label}</div>
       <div className="mt-0.5 text-[12.5px] text-ink-3">{sub}</div>
+    </Link>
+  );
+}
+
+function TodoCard() {
+  const c = todoCounts();
+  if (!c.toBook && !c.missing) return null;
+  return (
+    <Link to="/reservations?tab=todo" className="tap mx-5 mt-5 flex items-center gap-3 rounded-[var(--radius-card)] border border-gold/50 bg-gold-soft/40 p-4">
+      <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-[15px] font-bold text-white ${c.urgent ? 'bg-lacquer' : 'bg-gold'}`}>{c.toBook}</span>
+      <span className="min-w-0 flex-1 text-[13.5px]">
+        <span className="block font-semibold text-ink">Falta reservar</span>
+        <span className="block text-ink-2">{c.toBook} item(ns) do roteiro{c.urgent ? `, ${c.urgent} urgente` : ''} · {c.missing} com dados faltando</span>
+      </span>
+      <ArrowRight size={16} className="shrink-0 text-ink-3" aria-hidden />
     </Link>
   );
 }

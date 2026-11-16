@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import envelope from '../data/private.enc.json';
 import type { PrivateData, PrivateEntry } from '../data/types';
 import { decryptPrivate, type Envelope } from '../lib/crypto';
+import { localPrivate } from '../lib/localStore';
+import { localStore } from '../data';
 
 /**
  * Booking codes, ticket numbers and contacts are shipped *encrypted*
@@ -14,13 +16,17 @@ interface Ctx {
   get: (id?: string) => PrivateEntry | undefined;
   unlock: (pass: string) => Promise<boolean>;
   lock: () => void;
+  /** Passphrase, once unlocked (used to encrypt group updates). */
+  passphrase?: string;
 }
 const PrivateCtx = createContext<Ctx>({ state: 'none', get: () => undefined, unlock: async () => false, lock: () => {} });
 const KEY = 'ovt:pass';
 const env = envelope as Envelope | null;
+const LOCAL_PRIVATE = localPrivate(localStore);
 
 export function PrivateProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<PrivateData | null>(null);
+  const [passphrase, setPassphrase] = useState<string>();
   // A passphrase saved on this device is being used to decrypt (~1s): don't flash the lock form.
   const [opening, setOpening] = useState(() => {
     try { return !!env && !!localStorage.getItem(KEY); } catch { return false; }
@@ -32,6 +38,7 @@ export function PrivateProvider({ children }: { children: React.ReactNode }) {
     try {
       const d = await decryptPrivate(env, pass);
       setData(d);
+      setPassphrase(pass);
       try { localStorage.setItem(KEY, pass); } catch { /* ignore */ }
       return true;
     } catch {
@@ -53,10 +60,18 @@ export function PrivateProvider({ children }: { children: React.ReactNode }) {
 
   const lock = () => {
     setData(null);
+    setPassphrase(undefined);
     try { localStorage.removeItem(KEY); } catch { /* ignore */ }
   };
 
-  return <PrivateCtx.Provider value={{ state, get: (id) => (id && data ? data[id] : undefined), unlock, lock }}>{children}</PrivateCtx.Provider>;
+  // Codes typed on this phone are merged over the published (encrypted) ones.
+  const get = (id?: string) => {
+    if (!id || !data) return undefined;
+    const pub = data[id];
+    const loc = LOCAL_PRIVATE[id];
+    return pub || loc ? { ...pub, ...loc } : undefined;
+  };
+  return <PrivateCtx.Provider value={{ state, get, unlock, lock, passphrase }}>{children}</PrivateCtx.Provider>;
 }
 
 export const usePrivate = () => useContext(PrivateCtx);

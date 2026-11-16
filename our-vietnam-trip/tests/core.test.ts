@@ -64,8 +64,7 @@ describe('itinerary data', () => {
     // Route order (doc "Rota")
     expect(m.route.map((r) => r.cityId)).toEqual(['hanoi', 'ninh-binh', 'ha-long', 'hoi-an', 'hue', 'ho-chi-minh']);
     // Nights (doc "Resumo de noites"; HCMC hotel not booked yet → 0 booked nights)
-    expect(Object.fromEntries(m.route.map((r) => [r.cityId, r.nights]))).toEqual({ hanoi: 2, 'ninh-binh': 2, 'ha-long': 1, 'hoi-an': 3, hue: 1, 'ho-chi-minh': 0 });
-    expect(m.days.filter((d) => d.date >= '2026-12-02' && d.date <= '2026-12-05').every((d) => !d.hotelId && d.stayNote)).toBe(true);
+    expect(Object.fromEntries(m.route.map((r) => [r.cityId, r.nights]))).toEqual({ hanoi: 2, 'ninh-binh': 2, 'ha-long': 1, 'hoi-an': 3, hue: 1, 'ho-chi-minh': 4 });
     // Flights (sheet "Calendar" + doc)
     const f = (id: string) => m.flight(id)!;
     expect([f('gru-doh').departTime, f('gru-doh').arriveDate, f('gru-doh').arriveTime]).toEqual(['20:25', '2026-11-21', '16:00']);
@@ -73,23 +72,27 @@ describe('itinerary data', () => {
     expect([f('hph-dad').departDate, f('hph-dad').departTime, f('hph-dad').arriveTime]).toEqual(['2026-11-28', '16:15', '17:30']);
     expect([f('sgn-doh').departTime, f('sgn-doh').arriveTime]).toEqual(['19:40', '23:40']);
     expect([f('doh-gru').departDate, f('doh-gru').departTime, f('doh-gru').arriveTime]).toEqual(['2026-12-07', '00:25', '09:30']);
-    expect(f('hui-sgn').departTime).toBeUndefined();
     // Qatar confirmations
     expect(['gru-doh', 'doh-han', 'sgn-doh', 'doh-gru'].map((id) => f(id).flightNumber)).toEqual(['QR 780', 'QR 976', 'QR 971', 'QR 785']);
     expect([f('doh-han').arriveTerminal, f('sgn-doh').departTerminal]).toEqual(['2', '2']);
     // Nothing invented: only addresses that came from a confirmation; no codes in public data
-    expect(m.places.filter((p) => p.address).map((p) => p.id)).toEqual(['millennium-plaza-doha']);
+    expect(m.places.filter((p) => p.address).map((p) => p.id)).toEqual(['millennium-plaza-doha', 'little-riverside', 'melia-vinpearl-hue', 'fusion-saigon']);
     expect(f('hph-dad').flightNumber).toBeUndefined();
+    expect([f('hui-sgn').flightNumber, f('hui-sgn').departTime, f('hui-sgn').arriveTime, f('hui-sgn').status]).toEqual(['VJ 1311', '17:50', '19:15', 'confirmed']);
     expect(JSON.stringify(tripData)).not.toMatch(/7HD4WN|7HQJVM|QZ1Z5BDQ|157214|873403289/);
     // Doha stopover is not part of the Vietnam route
     expect(m.route.some((r) => r.cityId === 'doha')).toBe(false);
     // Only bookings marked RESERVADO are confirmed hotels
-    expect(m.hotels.map((h) => h.placeId)).toEqual(['millennium-plaza-doha', 'oriental-jade', 'la-lua', 'orchid-cruise', 'little-riverside', 'melia-vinpearl-hue']);
+    expect(m.hotels.map((h) => h.placeId)).toEqual(['millennium-plaza-doha', 'oriental-jade', 'la-lua', 'orchid-cruise', 'little-riverside', 'melia-vinpearl-hue', 'fusion-saigon']);
+    expect(m.hotels.every((h) => h.status === 'confirmed')).toBe(true);
     expect(m.bookings.every((b) => b.status === 'pending')).toBe(true);
+    expect(JSON.stringify(tripData)).not.toMatch(/5050\.163|5773\.781|6426\.057|ETD9YY|9805|3163|7815|8756/);
   });
   it('day 6 schedule keeps transfer before the 16:15 flight', () => {
     const m = buildModel(tripData);
     const afternoon = m.schedule(m.day('2026-11-28')!).find((g) => g.period === 'afternoon')!.items.map((a) => a.id);
+    // Hue → SGN day: transfer to airport before the 17:50 flight
+    expect(m.schedule(m.day('2026-12-02')!).find((g) => g.period === 'afternoon')!.items.map((a) => a.id)).toEqual(['d10-lunch', 'd10-to-airport', 'd10-flight']);
     expect(afternoon).toEqual(['d6-transfer-hph', 'd6-flight']);
   });
   it('sample validates', () => {
@@ -138,4 +141,32 @@ describe('private data encryption', () => {
       if (!hadDir) rmSync('private', { recursive: true, force: true });
     }
   }, 30000);
+});
+
+describe('changes made in the app', () => {
+  it('marks a pending booking as booked, adds a new one, and merges by newest', async () => {
+    const { applyLocal, mergeLocal, localPrivate } = await import('../src/lib/localStore');
+    const store = {
+      edits: { 'b-cu-chi': { status: 'confirmed' as const, time: '07:30', provider: 'Les Rives', bookingRef: 'CC-1', updatedAt: '2026-11-17T10:00:00Z' } },
+      items: [{ id: 'local-x', kind: 'restaurant' as const, title: 'Jantar Madame Hien', date: '2026-11-24', time: '19:30', status: 'confirmed' as const, updatedAt: '2026-11-17T10:00:00Z' }],
+    };
+    const m = buildModel(applyLocal(tripData, store));
+    expect(m.booking('b-cu-chi')).toMatchObject({ status: 'confirmed', time: '07:30', provider: 'Les Rives' });
+    expect(m.day('2026-12-04')!.activities.find((a) => a.id === 'd12-cu-chi')!.status).toBe('confirmed');
+    expect(m.day('2026-11-24')!.activities.some((a) => a.bookingId === 'local-x' && a.kind === 'meal')).toBe(true);
+    expect(validateTrip(applyLocal(tripData, store)).filter((i) => i.level === 'error')).toEqual([]);
+    expect(localPrivate(store)['b-cu-chi'].bookingRef).toBe('CC-1');
+    expect(tripData.bookings.find((b) => b.id === 'b-cu-chi')!.status).toBe('pending'); // original untouched
+    const newer = { edits: { 'b-cu-chi': { status: 'pending' as const, updatedAt: '2026-11-18T00:00:00Z' } }, items: [] };
+    const older = { edits: { 'b-cu-chi': { status: 'pending' as const, updatedAt: '2026-11-01T00:00:00Z' } }, items: [] };
+    expect(mergeLocal(store, newer).store.edits['b-cu-chi'].status).toBe('pending');
+    expect(mergeLocal(store, older)).toMatchObject({ changed: 0 });
+  });
+  it('group code round-trips with the trip passphrase', async () => {
+    const { encryptJSON, decryptJSON } = await import('../src/lib/crypto');
+    const env = await encryptJSON({ edits: {}, items: [{ id: 'a' }] }, 'senha-de-teste-1', 1000);
+    expect(JSON.stringify(env)).not.toContain('"a"');
+    expect(await decryptJSON(env, 'senha-de-teste-1')).toEqual({ edits: {}, items: [{ id: 'a' }] });
+    await expect(decryptJSON(env, 'outra-senha-xx')).rejects.toBeTruthy();
+  });
 });

@@ -106,10 +106,24 @@ export interface Place {
   mapsQuery?: string;
   description?: string;
   photo?: Photo;
+  /** Public phone of the place (hotel reception etc.). */
+  phone?: string;
   notes?: string;
 }
 
-export interface Hotel {
+/** How urgent it is to book something (from the itinerary's booking table). */
+export type Priority = 'high' | 'medium' | 'low';
+
+/** Fields shared by everything that can be booked. */
+interface Bookable {
+  /** Booked, but these details are still missing (shown in "A fazer"). */
+  missing?: string[];
+  /** When to book it (itinerary table), for pending items. */
+  bookBy?: string;
+  priority?: Priority;
+}
+
+export interface Hotel extends Bookable {
   id: string;
   placeId: string; // name, address, coords live on the Place
   checkIn: ISODate;
@@ -131,7 +145,7 @@ export interface Airport {
   placeId?: string;
 }
 
-export interface Flight {
+export interface Flight extends Bookable {
   id: string;
   airline?: string;
   flightNumber?: string;
@@ -144,6 +158,7 @@ export interface Flight {
   departTerminal?: string;
   arriveTerminal?: string;
   baggage?: string;
+  seats?: string;
   status: Status;
   notes?: string;
 }
@@ -151,7 +166,7 @@ export interface Flight {
 export type BookingKind = 'transfer' | 'train' | 'bus' | 'boat' | 'cruise' | 'car' | 'tour' | 'ticket' | 'restaurant' | 'other';
 
 /** Transports, tours, tickets and restaurant reservations. */
-export interface Booking {
+export interface Booking extends Bookable {
   id: string;
   kind: BookingKind;
   title: string;
@@ -241,3 +256,32 @@ export interface PrivateEntry {
   notes?: string;
 }
 export type PrivateData = Record<string, PrivateEntry>;
+
+/* --------------------------------------------------------------------------
+ * Changes made inside the app (saved on the phone, shareable with the group).
+ * They are applied on top of trip.ts until they are published permanently.
+ * ------------------------------------------------------------------------ */
+export interface LocalEdit {
+  status?: Status;
+  time?: LocalTime;
+  provider?: string;
+  flightNumber?: string;
+  meetingPoint?: string;
+  notes?: string;
+  bookingRef?: string;
+  phone?: string;
+  contact?: string;
+  updatedAt: string;
+}
+export interface LocalItem extends Omit<LocalEdit, 'status'> {
+  id: string;
+  kind: BookingKind;
+  title: string;
+  date: ISODate;
+  status: Status;
+  deleted?: boolean;
+}
+export interface LocalStore {
+  edits: Record<string, LocalEdit>;
+  items: LocalItem[];
+}

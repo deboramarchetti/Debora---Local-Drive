@@ -1,6 +1,7 @@
 import { buildModel } from './model';
 import { sampleData } from './sample';
 import { tripData } from './trip';
+import { applyLocal, loadLocal } from '../lib/localStore';
 
 const SAMPLE_KEY = 'ovt:sample';
 
@@ -17,5 +18,7 @@ function sampleMode(): boolean {
 }
 
 export const IS_SAMPLE = sampleMode();
-export const model = buildModel(IS_SAMPLE ? sampleData : tripData);
+/** Changes saved on this phone (applied on top of the published itinerary). */
+export const localStore = loadLocal();
+export const model = buildModel(IS_SAMPLE ? sampleData : applyLocal(tripData, localStore));
 export type { TripModel } from './model';

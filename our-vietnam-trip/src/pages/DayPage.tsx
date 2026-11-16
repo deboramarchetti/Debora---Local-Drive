@@ -113,6 +113,13 @@ export function DayPage() {
             <div className="eyebrow mb-1 flex items-center gap-1.5"><Bed size={12} aria-hidden /> Hotel desta noite</div>
             <div className="font-display text-[18px] leading-snug">{hotelPlace.name}</div>
             {hotelPlace.address && <div className="mt-0.5 flex gap-1.5 text-[13px] text-ink-3"><MapPin size={13} className="mt-[3px] shrink-0" aria-hidden />{hotelPlace.address}</div>}
+            {(hotel.checkInTime || hotel.checkOutTime) && (
+              <div className="mt-1 text-[12.5px] text-ink-3">
+                {hotel.checkIn === date && hotel.checkInTime && <>Check-in a partir das <b className="text-ink-2">{hotel.checkInTime}</b> </>}
+                {hotel.checkOut > date && hotel.checkOutTime && <>· Check-out {hotel.checkOut.slice(8)}/{hotel.checkOut.slice(5, 7)} até <b className="text-ink-2">{hotel.checkOutTime}</b></>}
+              </div>
+            )}
+            {hotelPlace.phone && <a href={`tel:${hotelPlace.phone.replace(/[^+\d]/g, '')}`} className="mt-1 block text-[12.5px] text-ink-2 underline decoration-line underline-offset-2">{hotelPlace.phone}</a>}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <MapsButton place={hotelPlace} />
               <MapsButton place={hotelPlace} label="Como chegar" variant="ghost" directions />

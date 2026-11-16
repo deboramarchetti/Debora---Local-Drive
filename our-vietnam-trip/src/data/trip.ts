@@ -50,7 +50,7 @@ const places: Place[] = [
   { id: 'hph-airport', name: 'Aeroporto de Cat Bi (Hai Phong)', cityId: 'ha-long', kind: 'airport', mapsQuery: 'Cat Bi International Airport, Hai Phong', coords: ll(20.8194, 106.725) },
   // Hoi An
   { id: 'dad-airport', name: 'Aeroporto de Da Nang', cityId: 'hoi-an', kind: 'airport', mapsQuery: 'Da Nang International Airport', coords: ll(16.0439, 108.1994) },
-  { id: 'little-riverside', name: 'Little Riverside Hoi An', cityId: 'hoi-an', kind: 'hotel', mapsQuery: 'Little Riverside Hoi An', notes: 'Dá para ir a pé para os lugares.' },
+  { id: 'little-riverside', name: 'Little Riverside Hoi An', cityId: 'hoi-an', kind: 'hotel', address: '09 Phan Boi Chau, Cam Chau, Hoi An, Vietnã', coords: { lat: 15.87685, lng: 108.336417, verified: true }, phone: '+84 235 3575 555', notes: 'Dá para ir a pé para os lugares.' },
   { id: 'ancient-town', name: 'Hoi An Ancient Town', localName: 'Phố cổ Hội An', cityId: 'hoi-an', kind: 'attraction', mapsQuery: 'Hoi An Ancient Town', coords: ll(15.877, 108.328) },
   { id: 'japanese-bridge', name: 'Japanese Covered Bridge', localName: 'Chùa Cầu', cityId: 'hoi-an', kind: 'attraction', mapsQuery: 'Japanese Covered Bridge, Hoi An', coords: ll(15.8771, 108.3262) },
   { id: 'tra-que', name: 'Tra Que', localName: 'Làng rau Trà Quế', cityId: 'hoi-an', kind: 'attraction', mapsQuery: 'Tra Que Vegetable Village, Hoi An', coords: ll(15.8985, 108.329) },
@@ -58,13 +58,14 @@ const places: Place[] = [
   // Hai Van Pass road trip & Hue
   { id: 'hai-van', name: 'Hai Van Pass', localName: 'Đèo Hải Vân', cityId: 'hue', kind: 'attraction', mapsQuery: 'Hai Van Pass', coords: ll(16.1925, 108.13) },
   { id: 'lang-co', name: 'Lang Co', localName: 'Lăng Cô', cityId: 'hue', kind: 'attraction', mapsQuery: 'Lang Co Beach', coords: ll(16.27, 108.06) },
-  { id: 'melia-vinpearl-hue', name: 'Meliá Vinpearl Hue', cityId: 'hue', kind: 'hotel', mapsQuery: 'Meliá Vinpearl Hue' },
+  { id: 'melia-vinpearl-hue', name: 'Meliá Vinpearl Hue', cityId: 'hue', kind: 'hotel', address: '50A Hung Vuong Street, Phu Nhuan Ward, Hue, Vietnam', coords: { lat: 16.463067, lng: 107.5944, verified: true }, phone: '+84 234 3688 666' },
   { id: 'khai-dinh', name: 'Khai Dinh Tomb', localName: 'Lăng Khải Định', cityId: 'hue', kind: 'attraction', mapsQuery: 'Khai Dinh Tomb, Hue', coords: ll(16.3989, 107.59) },
   { id: 'imperial-city', name: 'Imperial City / Citadel', localName: 'Đại Nội Huế', cityId: 'hue', kind: 'attraction', mapsQuery: 'Imperial City, Hue', coords: ll(16.4698, 107.5786) },
   { id: 'thien-mu', name: 'Thien Mu Pagoda', localName: 'Chùa Thiên Mụ', cityId: 'hue', kind: 'attraction', mapsQuery: 'Thien Mu Pagoda, Hue', coords: ll(16.4534, 107.5446) },
   { id: 'perfume-river', name: 'Perfume River', localName: 'Sông Hương', cityId: 'hue', kind: 'attraction', mapsQuery: 'Perfume River, Hue', coords: ll(16.4637, 107.5856) },
   { id: 'hui-airport', name: 'Aeroporto de Hue (Phu Bai)', cityId: 'hue', kind: 'airport', mapsQuery: 'Phu Bai International Airport, Hue', coords: ll(16.4015, 107.7026) },
   // Ho Chi Minh City
+  { id: 'fusion-saigon', name: 'Fusion Original Saigon Centre', cityId: 'ho-chi-minh', kind: 'hotel', address: '65 Đường Lê Lợi, Takashimaya Saigon Centre, Quận 1, Ho Chi Minh City, Vietnam', coords: { lat: 10.773317, lng: 106.700967, verified: true }, phone: '+84 28 3622 2265', notes: 'Fica no térreo do Saigon Centre: entre pela entrada da rua Pasteur e vire à direita (em frente à loja Marc Jacobs).' },
   { id: 'sgn-airport', name: 'Tan Son Nhat International Airport', cityId: 'ho-chi-minh', kind: 'airport', mapsQuery: 'Tan Son Nhat International Airport', coords: ll(10.8188, 106.652) },
   { id: 'war-remnants', name: 'War Remnants Museum', localName: 'Bảo tàng Chứng tích Chiến tranh', cityId: 'ho-chi-minh', kind: 'attraction', mapsQuery: 'War Remnants Museum, Ho Chi Minh City', coords: ll(10.7795, 106.6922) },
   { id: 'independence-palace', name: 'Independence Palace', localName: 'Dinh Độc Lập', cityId: 'ho-chi-minh', kind: 'attraction', mapsQuery: 'Independence Palace, Ho Chi Minh City', coords: ll(10.777, 106.6953) },
@@ -87,34 +88,40 @@ const airports: Airport[] = [
 // --------------------------------------------------------------- flights
 // International legs: Qatar Airways confirmations (outbound QZ1Z5BDQ screenshot, return e-ticket PDF).
 const flights: Flight[] = [
-  { id: 'gru-doh', airline: 'Qatar Airways', flightNumber: 'QR 780', from: 'GRU', to: 'DOH', departDate: '2026-11-20', departTime: '20:25', arriveDate: '2026-11-21', arriveTime: '16:00', departTerminal: '3', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', notes: 'Ida. Stopover em Doha (Millennium Plaza Doha) antes do voo para Hanói.' },
+  { id: 'gru-doh', airline: 'Qatar Airways', flightNumber: 'QR 780', from: 'GRU', to: 'DOH', departDate: '2026-11-20', departTime: '20:25', arriveDate: '2026-11-21', arriveTime: '16:00', departTerminal: '3', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', notes: 'Ida. Stopover em Doha (Millennium Plaza Doha) antes do voo para Hanói.', missing: ['reserva/bilhete do Luiz Arthur (a confirmação enviada tem só Renato e Débora)'] },
   { id: 'doh-han', airline: 'Qatar Airways', flightNumber: 'QR 976', from: 'DOH', to: 'HAN', departDate: '2026-11-23', departTime: '01:50', arriveDate: '2026-11-23', arriveTime: '12:20', arriveTerminal: '2', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', notes: 'Chegada em Hanói.' },
-  { id: 'hph-dad', from: 'HPH', to: 'DAD', departDate: '2026-11-28', departTime: '16:15', arriveDate: '2026-11-28', arriveTime: '17:30', status: 'confirmed', notes: 'Voo direto Hai Phong (Cat Bi) → Da Nang. Companhia e número do voo não informados.' },
-  { id: 'hui-sgn', from: 'HUI', to: 'SGN', departDate: '2026-12-02', status: 'pending', notes: 'Horário, companhia e status da reserva não informados no roteiro. A planilha de tarefas marca "Voos internos: Done" — confirmar.' },
-  { id: 'sgn-doh', airline: 'Qatar Airways', flightNumber: 'QR 971', from: 'SGN', to: 'DOH', departDate: '2026-12-06', departTime: '19:40', arriveDate: '2026-12-06', arriveTime: '23:40', departTerminal: '2', baggage: 'Economy · 2 malas (2PC)', status: 'confirmed', notes: 'Qatar recomenda chegar ao aeroporto 3h antes; check-in online abre 48h antes. Na conexão em Doha: lounge, comida, banho e descanso.' },
+  { id: 'hph-dad', from: 'HPH', to: 'DAD', departDate: '2026-11-28', departTime: '16:15', arriveDate: '2026-11-28', arriveTime: '17:30', status: 'confirmed', notes: 'Voo direto Hai Phong (Cat Bi) → Da Nang.', missing: ['companhia e número do voo', 'código da reserva', 'bagagem incluída'] },
+  { id: 'hui-sgn', airline: 'VietJet Air', flightNumber: 'VJ 1311', from: 'HUI', to: 'SGN', departDate: '2026-12-02', departTime: '17:50', arriveDate: '2026-12-02', arriveTime: '19:15', baggage: 'Por pessoa: 1 mala de mão 7 kg (23×36×56 cm) + 1 mala despachada 20 kg. Itens pessoais não incluídos.', seats: '4C, 4D, 5D', status: 'confirmed', notes: 'Direto · 1h25 · Econômica. 3 viajantes. Permite alteração; reembolso parcial se cancelar.' },
+  { id: 'sgn-doh', airline: 'Qatar Airways', flightNumber: 'QR 971', from: 'SGN', to: 'DOH', departDate: '2026-12-06', departTime: '19:40', arriveDate: '2026-12-06', arriveTime: '23:40', departTerminal: '2', baggage: 'Economy · 2 malas (2PC)', status: 'confirmed', missing: ['bilhetes da Débora e do Luiz Arthur (o PDF enviado é só do Renato)'], notes: 'Qatar recomenda chegar ao aeroporto 3h antes; check-in online abre 48h antes. Na conexão em Doha: lounge, comida, banho e descanso.' },
   { id: 'doh-gru', airline: 'Qatar Airways', flightNumber: 'QR 785', from: 'DOH', to: 'GRU', departDate: '2026-12-07', departTime: '00:25', arriveDate: '2026-12-07', arriveTime: '09:30', arriveTerminal: '3', baggage: 'Economy · 2 malas (2PC)', status: 'confirmed', notes: 'Último trecho, para São Paulo.' },
 ];
 
 // ---------------------------------------------------------------- hotels
 // Only bookings marked "RESERVADO" in the doc. Ho Chi Minh City: not booked yet.
 const hotels: Hotel[] = [
-  { id: 'h-millennium-doha', placeId: 'millennium-plaza-doha', checkIn: '2026-11-21', checkOut: '2026-11-22', bookedVia: 'Qatar Airways (pacote voo + hotel)', status: 'pending', notes: 'Stopover de ida. As datas do hotel não aparecem na parte da confirmação enviada; o roteiro diz 1 noite (check-out 22/11 é uma suposição — confirmar). O voo para Hanói sai 23/11 à 01:50.' },
-  { id: 'h-oriental-jade', placeId: 'oriental-jade', checkIn: '2026-11-23', checkOut: '2026-11-25', bookedVia: 'Booking.com', status: 'confirmed' },
-  { id: 'h-la-lua', placeId: 'la-lua', checkIn: '2026-11-25', checkOut: '2026-11-27', bookedVia: 'Booking.com', status: 'confirmed' },
-  { id: 'h-orchid-cruise', placeId: 'orchid-cruise', checkIn: '2026-11-27', checkOut: '2026-11-28', roomType: 'Cruzeiro Ha Long / Lan Ha 2D1N — noite a bordo', status: 'confirmed', notes: 'Embarque próximo ao almoço. Normalmente inclui navegação, caiaque, cavernas ou ilhas, sunset no deck e jantar.' },
-  { id: 'h-little-riverside', placeId: 'little-riverside', checkIn: '2026-11-28', checkOut: '2026-12-01', bookedVia: 'Booking.com', status: 'confirmed' },
-  { id: 'h-melia-hue', placeId: 'melia-vinpearl-hue', checkIn: '2026-12-01', checkOut: '2026-12-02', bookedVia: 'Booking.com', status: 'confirmed' },
+  { id: 'h-millennium-doha', placeId: 'millennium-plaza-doha', checkIn: '2026-11-21', checkOut: '2026-11-22', bookedVia: 'Qatar Airways (pacote voo + hotel)', status: 'confirmed', missing: ['datas exatas de check-in/check-out (21→22/11 é suposição)'], notes: 'Stopover de ida. As datas do hotel não aparecem na parte da confirmação enviada; o roteiro diz 1 noite (check-out 22/11 é uma suposição — confirmar). O voo para Hanói sai 23/11 à 01:50.' },
+  { id: 'h-oriental-jade', placeId: 'oriental-jade', checkIn: '2026-11-23', checkOut: '2026-11-25', bookedVia: 'Booking.com', status: 'confirmed', missing: ['confirmação (número, PIN, endereço, horários)'] },
+  { id: 'h-la-lua', placeId: 'la-lua', checkIn: '2026-11-25', checkOut: '2026-11-27', bookedVia: 'Booking.com', status: 'confirmed', missing: ['confirmação (número, PIN, endereço, horários)'] },
+  { id: 'h-orchid-cruise', placeId: 'orchid-cruise', checkIn: '2026-11-27', checkOut: '2026-11-28', roomType: 'Cruzeiro Ha Long / Lan Ha 2D1N — noite a bordo', bookedVia: 'Booking.com', status: 'confirmed', missing: ['confirmação (código, horário e ponto de embarque, transfer incluso?)'], notes: 'Embarque próximo ao almoço. Normalmente inclui navegação, caiaque, cavernas ou ilhas, sunset no deck e jantar.' },
+  { id: 'h-little-riverside', placeId: 'little-riverside', checkIn: '2026-11-28', checkOut: '2026-12-01', checkInTime: '14:00', checkOutTime: '12:00', roomType: 'Suíte Little Town · café da manhã incluído', bookedVia: 'Booking.com', status: 'confirmed', notes: 'Reserva para 2 adultos (Renato). Pré-pagamento total pode ser cobrado a qualquer momento; cancelamento já não é gratuito (prazo era 06/11). Levar documento com foto e cartão de crédito. Avisar o hotel do horário previsto de chegada.' },
+  { id: 'h-melia-hue', placeId: 'melia-vinpearl-hue', checkIn: '2026-12-01', checkOut: '2026-12-02', checkInTime: '14:00', checkOutTime: '12:00', roomType: 'Quarto Deluxe · sem refeições', bookedVia: 'Booking.com', status: 'confirmed', notes: 'Reserva para 2 adultos (Renato). Pagamento no hotel; cancelamento grátis até 27/11 23:59. O cartão usado na reserva deve ser do hóspede. Booking informa "sem acesso à internet".' },
+  { id: 'h-fusion-saigon', placeId: 'fusion-saigon', checkIn: '2026-12-02', checkOut: '2026-12-06', checkInTime: '14:00', checkOutTime: '12:00', roomType: 'Acomodação Original com cama king-size · café da manhã incluído', bookedVia: 'Booking.com', status: 'confirmed', notes: 'Reserva para 2 adultos (Renato). Pré-pagamento total nos 3 dias antes da chegada; cancelamento grátis até 28/11 23:59. Levar o cartão físico usado no pré-pagamento (titular = hóspede) e passaporte. Caução de VND 1.000.000 em dinheiro no check-in (devolvida no check-out). Visitantes só com registro, 08:00–22:00.' },
 ];
 
 // ---------------------------------------------- transports & tours to book
 // From the doc's booking table. None of these is marked as reserved yet.
 const bookings: Booking[] = [
-  { id: 'b-transfer-nb-tuan-chau', kind: 'transfer', title: 'Transfer Ninh Binh → Tuan Chau', date: '2026-11-27', toPlaceId: 'tuan-chau', status: 'pending', notes: 'A reservar 2–4 semanas antes.' },
-  { id: 'b-hai-van', kind: 'car', title: 'Carro privado Hoi An → Hue via Hai Van Pass', date: '2026-12-01', fromPlaceId: 'little-riverside', toPlaceId: 'melia-vinpearl-hue', status: 'pending', notes: 'A reservar 1–3 semanas antes.' },
-  { id: 'b-food-tour', kind: 'tour', title: 'Food tour em Hanói', date: '2026-11-24', status: 'pending', notes: 'No fim da tarde/noite. A reservar ~1 semana antes.' },
-  { id: 'b-cooking-class', kind: 'tour', title: 'Cooking class em Hoi An', date: '2026-11-30', status: 'pending', notes: 'A reservar ~1 semana antes.' },
-  { id: 'b-cu-chi', kind: 'tour', title: 'Cu Chi Tunnels — meio dia', date: '2026-12-04', status: 'pending', notes: 'Preferência por passeio de meio dia, pela manhã. A reservar 1–2 semanas antes.' },
-  { id: 'b-mekong', kind: 'tour', title: 'Delta do Mekong — bate-volta a Ben Tre', date: '2026-12-05', status: 'pending', notes: 'Perto da viagem, com cancelamento grátis.' },
+  { id: 'b-visa', kind: 'other', title: 'Visto do Vietnã', date: '2026-11-23', priority: 'high', bookBy: 'antes do embarque (20/11)', status: 'pending', notes: 'Planilha "To dos": Visa — To Do.' },
+  { id: 'b-transfer-han-hotel', kind: 'transfer', title: 'Transfer aeroporto de Hanói → Oriental Jade', date: '2026-11-23', fromPlaceId: 'han-airport', toPlaceId: 'oriental-jade', priority: 'low', bookBy: 'opcional (o roteiro cita o transfer; não está na tabela de reservas)', status: 'pending' },
+  { id: 'b-transfer-han-nb', kind: 'transfer', title: 'Transfer Hanói → Ninh Binh', date: '2026-11-25', fromPlaceId: 'oriental-jade', toPlaceId: 'la-lua', priority: 'low', bookBy: 'opcional (o roteiro cita o transfer; não está na tabela de reservas)', status: 'pending' },
+  { id: 'b-transfer-halong-hph', kind: 'transfer', title: 'Transfer Ha Long → Aeroporto de Cat Bi (HPH)', date: '2026-11-28', toPlaceId: 'hph-airport', priority: 'medium', bookBy: 'junto com o cruzeiro (voo às 16:15)', status: 'pending', notes: 'Verificar se o cruzeiro oferece esse transfer.' },
+  { id: 'b-transfer-dad-hoian', kind: 'transfer', title: 'Transfer Aeroporto de Da Nang → Hoi An', date: '2026-11-28', fromPlaceId: 'dad-airport', toPlaceId: 'little-riverside', priority: 'low', bookBy: 'opcional (o hotel pode oferecer; Grab também atende)', status: 'pending' },
+  { id: 'b-transfer-nb-tuan-chau', kind: 'transfer', title: 'Transfer Ninh Binh → Tuan Chau', date: '2026-11-27', toPlaceId: 'tuan-chau', priority: 'medium', bookBy: '2–4 semanas antes', status: 'pending', notes: 'Transfer do roteiro (dia 5).' },
+  { id: 'b-hai-van', kind: 'car', title: 'Carro privado Hoi An → Hue via Hai Van Pass', date: '2026-12-01', fromPlaceId: 'little-riverside', toPlaceId: 'melia-vinpearl-hue', priority: 'medium', bookBy: '1–3 semanas antes', status: 'pending', notes: 'Passando por Da Nang, Hai Van Pass e Lang Co.' },
+  { id: 'b-food-tour', kind: 'tour', title: 'Food tour em Hanói', date: '2026-11-24', priority: 'low', bookBy: '~1 semana antes', status: 'pending', notes: 'No fim da tarde/noite.' },
+  { id: 'b-cooking-class', kind: 'tour', title: 'Cooking class em Hoi An', date: '2026-11-30', priority: 'low', bookBy: '~1 semana antes', status: 'pending', notes: 'Dia 8, o dia mais lento da viagem.' },
+  { id: 'b-cu-chi', kind: 'tour', title: 'Cu Chi Tunnels — meio dia', date: '2026-12-04', priority: 'medium', bookBy: '1–2 semanas antes', status: 'pending', notes: 'Preferência por passeio de meio dia, pela manhã.' },
+  { id: 'b-mekong', kind: 'tour', title: 'Delta do Mekong — bate-volta a Ben Tre', date: '2026-12-05', priority: 'low', bookBy: 'perto da viagem, cancelável', status: 'pending', notes: 'Saída pela manhã, retorno no fim da tarde.' },
 ];
 
 // ------------------------------------------------------------------ days
@@ -128,7 +135,8 @@ const days: Day[] = [
     summary: 'Não tentamos transformar o dia da chegada em uma maratona. O Old Quarter já entrega imediatamente o caos, a comida e a atmosfera de Hanói.',
     activities: sug([
       { id: 'd1-arrival', kind: 'flight', title: 'Chegada em Hanói', time: '12:20', flightId: 'doh-han', placeId: 'han-airport', status: 'confirmed' },
-      { id: 'd1-transfer', kind: 'transfer', title: 'Imigração e transfer para o hotel', period: 'afternoon', status: 'pending' },
+      { id: 'd1-visa', kind: 'note', title: 'Imigração: ter o visto em mãos', period: 'afternoon', bookingId: 'b-visa', status: 'pending' },
+      { id: 'd1-transfer', kind: 'transfer', title: 'Imigração e transfer para o hotel', period: 'afternoon', bookingId: 'b-transfer-han-hotel', status: 'pending' },
       { id: 'd1-checkin', kind: 'check-in', title: 'Check-in no Oriental Jade', period: 'afternoon', hotelId: 'h-oriental-jade', placeId: 'oriental-jade', status: 'confirmed' },
       { id: 'd1-old-quarter', kind: 'activity', title: 'Old Quarter', period: 'afternoon', placeId: 'old-quarter', description: 'Tarde livre para o primeiro contato com a cidade.' },
       { id: 'd1-hoan-kiem', kind: 'activity', title: 'Hoan Kiem Lake', period: 'afternoon', placeId: 'hoan-kiem' },
@@ -154,7 +162,7 @@ const days: Day[] = [
     summary: 'Muda completamente o ritmo depois de Hanói e entrega algumas das paisagens mais bonitas da viagem.',
     activities: sug([
       { id: 'd3-checkout', kind: 'check-out', title: 'Check-out do Oriental Jade', period: 'morning', hotelId: 'h-oriental-jade', placeId: 'oriental-jade', status: 'confirmed' },
-      { id: 'd3-transfer', kind: 'transfer', title: 'Transfer Hanói → Ninh Binh', period: 'morning', status: 'pending', notes: 'Transfer não consta como reservado.' },
+      { id: 'd3-transfer', kind: 'transfer', title: 'Transfer Hanói → Ninh Binh', period: 'morning', bookingId: 'b-transfer-han-nb', status: 'pending' },
       { id: 'd3-checkin', kind: 'check-in', title: 'Check-in no La Lua Resort', hotelId: 'h-la-lua', placeId: 'la-lua', status: 'confirmed', description: 'Hotel no meio da natureza.' },
       { id: 'd3-hang-mua', kind: 'activity', title: 'Hang Mua e seu mirante', placeId: 'hang-mua' },
       { id: 'd3-bike', kind: 'activity', title: 'Bicicleta pela região rural', description: 'Arrozais e vilarejos.' },
@@ -190,10 +198,10 @@ const days: Day[] = [
     activities: sug([
       { id: 'd6-cruise-morning', kind: 'activity', title: 'Manhã no cruzeiro', period: 'morning', description: 'Café, navegação, última atividade e brunch.' },
       { id: 'd6-disembark', kind: 'check-out', title: 'Desembarque', period: 'morning', hotelId: 'h-orchid-cruise', status: 'confirmed' },
-      { id: 'd6-transfer-hph', kind: 'transfer', title: 'Transfer até o Aeroporto de Cat Bi (HPH)', period: 'afternoon', placeId: 'hph-airport', status: 'pending' },
+      { id: 'd6-transfer-hph', kind: 'transfer', title: 'Transfer até o Aeroporto de Cat Bi (HPH)', period: 'afternoon', placeId: 'hph-airport', bookingId: 'b-transfer-halong-hph', status: 'pending' },
       { id: 'd6-flight', kind: 'flight', title: 'Voo Hai Phong → Da Nang', time: '16:15', endTime: '17:30', flightId: 'hph-dad', status: 'confirmed' },
-      { id: 'd6-transfer-hoi-an', kind: 'transfer', title: 'Transfer Da Nang → Hoi An', period: 'evening', placeId: 'dad-airport', status: 'pending' },
-      { id: 'd6-checkin', kind: 'check-in', title: 'Check-in no Little Riverside', period: 'evening', hotelId: 'h-little-riverside', placeId: 'little-riverside', status: 'confirmed' },
+      { id: 'd6-transfer-hoi-an', kind: 'transfer', title: 'Transfer Da Nang → Hoi An', period: 'evening', bookingId: 'b-transfer-dad-hoian', status: 'pending' },
+      { id: 'd6-checkin', kind: 'check-in', title: 'Check-in no Little Riverside (a partir das 14:00)', period: 'evening', hotelId: 'h-little-riverside', placeId: 'little-riverside', status: 'confirmed' },
     ]),
   },
   {
@@ -223,34 +231,33 @@ const days: Day[] = [
     title: 'Road trip pelo Hai Van Pass',
     summary: 'Em vez de perder um dia com deslocamento, a própria viagem entre Hoi An e Hue vira passeio.',
     activities: sug([
-      { id: 'd9-checkout', kind: 'check-out', title: 'Check-out do Little Riverside', period: 'morning', hotelId: 'h-little-riverside', placeId: 'little-riverside', status: 'confirmed' },
+      { id: 'd9-checkout', kind: 'check-out', title: 'Check-out do Little Riverside (até 12:00)', period: 'morning', hotelId: 'h-little-riverside', placeId: 'little-riverside', status: 'confirmed' },
       { id: 'd9-road-trip', kind: 'transfer', title: 'Carro privado: Da Nang → Hai Van Pass → Lang Co → Hue', period: 'morning', bookingId: 'b-hai-van', placeId: 'hai-van', highlight: true, status: 'pending' },
       { id: 'd9-lang-co', kind: 'activity', title: 'Lang Co', period: 'morning', placeId: 'lang-co' },
       { id: 'd9-khai-dinh', kind: 'activity', title: 'Khai Dinh Tomb', period: 'afternoon', placeId: 'khai-dinh' },
-      { id: 'd9-checkin', kind: 'check-in', title: 'Check-in no Meliá Vinpearl Hue', period: 'afternoon', hotelId: 'h-melia-hue', placeId: 'melia-vinpearl-hue', status: 'confirmed' },
+      { id: 'd9-checkin', kind: 'check-in', title: 'Check-in no Meliá Vinpearl Hue', time: '14:00', hotelId: 'h-melia-hue', placeId: 'melia-vinpearl-hue', status: 'confirmed' },
     ]),
   },
   {
-    date: '2026-12-02', cityIds: ['hue', 'ho-chi-minh'],
+    date: '2026-12-02', cityIds: ['hue', 'ho-chi-minh'], hotelId: 'h-fusion-saigon',
     title: 'Vietnã imperial',
     summary: 'Hue acrescenta algo que não existe no restante do roteiro: a história imperial vietnamita. Depois, voo para Ho Chi Minh City.',
-    stayNote: 'Opções no roteiro: La Siesta Premium ou Fusion Original Saigon Centre. Evitar a região de Bui Vien / Pham Ngu Lao.',
     activities: sug([
-      { id: 'd10-checkout', kind: 'check-out', title: 'Check-out do Meliá Vinpearl Hue', period: 'morning', hotelId: 'h-melia-hue', placeId: 'melia-vinpearl-hue', status: 'confirmed' },
+      { id: 'd10-checkout', kind: 'check-out', title: 'Check-out do Meliá Vinpearl Hue (até 12:00)', period: 'morning', hotelId: 'h-melia-hue', placeId: 'melia-vinpearl-hue', status: 'confirmed' },
       { id: 'd10-imperial', kind: 'activity', title: 'Imperial City / Citadel', period: 'morning', placeId: 'imperial-city', highlight: true },
       { id: 'd10-thien-mu', kind: 'activity', title: 'Thien Mu Pagoda', period: 'morning', placeId: 'thien-mu' },
       { id: 'd10-perfume', kind: 'activity', title: 'Perfume River', period: 'morning', placeId: 'perfume-river' },
       { id: 'd10-lunch', kind: 'meal', title: 'Almoço em Hue', period: 'afternoon' },
-      { id: 'd10-flight', kind: 'flight', title: 'Voo Hue → Ho Chi Minh City', period: 'afternoon', flightId: 'hui-sgn', status: 'pending', notes: 'Horário não informado.' },
-      { id: 'd10-checkin', kind: 'check-in', title: 'Check-in em Ho Chi Minh City', period: 'evening', status: 'pending', notes: 'Hotel ainda não reservado.' },
+      { id: 'd10-to-airport', kind: 'transfer', title: 'Ida ao Aeroporto de Hue (Phu Bai)', period: 'afternoon', placeId: 'hui-airport' },
+      { id: 'd10-flight', kind: 'flight', title: 'Voo Hue → Ho Chi Minh City', time: '17:50', endTime: '19:15', flightId: 'hui-sgn', status: 'confirmed' },
+      { id: 'd10-checkin', kind: 'check-in', title: 'Check-in no Fusion Original Saigon Centre', period: 'evening', hotelId: 'h-fusion-saigon', placeId: 'fusion-saigon', status: 'confirmed', notes: 'Caução de VND 1.000.000 em dinheiro; levar o cartão físico do pré-pagamento.' },
       { id: 'd10-dinner', kind: 'meal', title: 'Jantar', period: 'evening' },
     ]),
   },
   {
-    date: '2026-12-03', cityIds: ['ho-chi-minh'],
+    date: '2026-12-03', cityIds: ['ho-chi-minh'], hotelId: 'h-fusion-saigon',
     title: 'Guerra + Saigon moderna',
     summary: 'Provavelmente o dia historicamente mais forte da viagem — e também mostra o Vietnã moderno.',
-    stayNote: 'Hotel em Ho Chi Minh City ainda não reservado.',
     activities: sug([
       { id: 'd11-war-remnants', kind: 'activity', title: 'War Remnants Museum', placeId: 'war-remnants', highlight: true },
       { id: 'd11-independence', kind: 'activity', title: 'Independence Palace', placeId: 'independence-palace' },
@@ -259,10 +266,9 @@ const days: Day[] = [
     ]),
   },
   {
-    date: '2026-12-04', cityIds: ['ho-chi-minh'],
+    date: '2026-12-04', cityIds: ['ho-chi-minh'], hotelId: 'h-fusion-saigon',
     title: 'Cu Chi Tunnels — a guerra na prática',
     summary: 'Depois do War Remnants Museum, os túneis tornam muito mais concreta a compreensão de como a guerra funcionava no terreno.',
-    stayNote: 'Hotel em Ho Chi Minh City ainda não reservado.',
     activities: sug([
       { id: 'd12-cu-chi', kind: 'activity', title: 'Cu Chi Tunnels', period: 'morning', placeId: 'cu-chi', bookingId: 'b-cu-chi', highlight: true, status: 'pending', description: 'Preferência por passeio de meio dia.' },
       { id: 'd12-return', kind: 'transfer', title: 'Volta para Ho Chi Minh City', period: 'afternoon' },
@@ -270,10 +276,9 @@ const days: Day[] = [
     ]),
   },
   {
-    date: '2026-12-05', cityIds: ['ho-chi-minh'],
+    date: '2026-12-05', cityIds: ['ho-chi-minh'], hotelId: 'h-fusion-saigon',
     title: 'Delta do Mekong — bate-volta a Ben Tre',
     summary: 'Uma paisagem e um modo de vida que ainda não aparecem em nenhum outro momento da viagem. Ben Tre em vez de um roteiro gigantesco pelo Delta.',
-    stayNote: 'Hotel em Ho Chi Minh City ainda não reservado.',
     activities: sug([
       { id: 'd13-departure', kind: 'transfer', title: 'Saída de Ho Chi Minh City', period: 'morning' },
       { id: 'd13-mekong', kind: 'activity', title: 'Navegação pelo Mekong em Ben Tre', period: 'morning', placeId: 'ben-tre', bookingId: 'b-mekong', highlight: true, status: 'pending', description: 'Pequenos canais cercados por coqueiros, sampan tradicional, vilarejos, bicicleta ou caminhada pela zona rural e pequenos produtores locais.' },
@@ -290,7 +295,7 @@ const days: Day[] = [
       { id: 'd14-shopping', kind: 'activity', title: 'Últimas compras e café vietnamita', period: 'morning' },
       { id: 'd14-spa', kind: 'free-time', title: 'Massagem ou spa', period: 'morning' },
       { id: 'd14-lunch', kind: 'meal', title: 'Almoço', period: 'afternoon' },
-      { id: 'd14-checkout', kind: 'check-out', title: 'Late checkout, se possível', period: 'afternoon', notes: 'Banho e troca de roupa antes do voo.' },
+      { id: 'd14-checkout', kind: 'check-out', title: 'Check-out do Fusion (até 12:00) — pedir late checkout', period: 'afternoon', hotelId: 'h-fusion-saigon', placeId: 'fusion-saigon', notes: 'Banho e troca de roupa antes do voo. Pegar de volta a caução.' },
       { id: 'd14-to-airport', kind: 'transfer', title: 'Sair do hotel para o aeroporto', time: '15:15', placeId: 'sgn-airport', notes: 'Entre 15h15 e 15h30, para chegar com boa antecedência para o voo internacional.' },
       { id: 'd14-flight', kind: 'flight', title: 'Voo Ho Chi Minh City → Doha', time: '19:40', flightId: 'sgn-doh', status: 'confirmed' },
       { id: 'd14-flight-gru', kind: 'flight', title: 'Conexão Doha → São Paulo', period: 'evening', flightId: 'doh-gru', status: 'confirmed', description: 'Chegada em Doha às 23:40 (horário de Doha); voo para São Paulo às 00:25 de 07/12, chegada 09:30.' },
