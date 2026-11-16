@@ -11,6 +11,7 @@ import { MapsButton, Row, StatusBadge } from './ui';
 export function PrivateInfo({ id }: { id: string }) {
   const { state, get } = usePrivate();
   if (state === 'none') return null;
+  if (state === 'opening') return <div className="h-5 w-32 animate-pulse rounded-full bg-paper-2" aria-label="Carregando códigos" />;
   if (state === 'locked') {
     return (
       <Link to="/reservations#unlock" className="flex items-center gap-2 text-[12.5px] text-ink-3">

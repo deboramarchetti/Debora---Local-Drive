@@ -8,7 +8,7 @@ import { decryptPrivate, type Envelope } from '../lib/crypto';
  * (AES-256-GCM). Each traveller types the shared trip passphrase once;
  * it is kept only on that device so the codes also work offline.
  */
-type State = 'none' | 'locked' | 'unlocked';
+type State = 'none' | 'locked' | 'opening' | 'unlocked';
 interface Ctx {
   state: State;
   get: (id?: string) => PrivateEntry | undefined;
@@ -21,7 +21,11 @@ const env = envelope as Envelope | null;
 
 export function PrivateProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<PrivateData | null>(null);
-  const state: State = !env ? 'none' : data ? 'unlocked' : 'locked';
+  // A passphrase saved on this device is being used to decrypt (~1s): don't flash the lock form.
+  const [opening, setOpening] = useState(() => {
+    try { return !!env && !!localStorage.getItem(KEY); } catch { return false; }
+  });
+  const state: State = !env ? 'none' : data ? 'unlocked' : opening ? 'opening' : 'locked';
 
   const unlock = useCallback(async (pass: string) => {
     if (!env) return false;
@@ -38,7 +42,13 @@ export function PrivateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let saved: string | null = null;
     try { saved = localStorage.getItem(KEY); } catch { /* ignore */ }
-    if (saved && env) unlock(saved).then((ok) => { if (!ok) try { localStorage.removeItem(KEY); } catch { /* ignore */ } });
+    if (saved && env) {
+      unlock(saved).then((ok) => {
+        // Wrong saved passphrase (e.g. it was changed in a new version): forget it.
+        if (!ok) try { localStorage.removeItem(KEY); } catch { /* ignore */ }
+        setOpening(false);
+      });
+    }
   }, [unlock]);
 
   const lock = () => {

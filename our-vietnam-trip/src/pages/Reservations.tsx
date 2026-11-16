@@ -71,7 +71,7 @@ function UnlockCard() {
   const { hash } = useLocation();
   useEffect(() => { if (hash === '#unlock') document.getElementById('unlock')?.scrollIntoView({ behavior: 'smooth' }); }, [hash]);
 
-  if (state === 'none') return null;
+  if (state === 'none' || state === 'opening') return null;
   if (state === 'unlocked') {
     return (
       <div className="mx-5 flex items-center justify-between rounded-2xl bg-jade-soft px-4 py-2.5 text-[13px] text-jade">
