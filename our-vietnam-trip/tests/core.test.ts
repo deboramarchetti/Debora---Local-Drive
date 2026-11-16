@@ -183,6 +183,11 @@ describe('per-party view (same hotels, separate reservations)', () => {
     expect(missingFor(m.flight('sgn-doh')!, 'casal')).toEqual(['bilhete da Débora (o PDF enviado é só do Renato)']);
     expect(missingFor(m.flight('sgn-doh')!, 'arthur')).toEqual(['sua confirmação (código, PIN)']);
     expect(missingFor(m.hotel('h-la-lua')!, 'casal')).toEqual(['endereço e horários de check-in/check-out', 'sua confirmação (código, PIN)']);
+    // The to-do list keeps own codes apart: Arthur's hotels are booked, codes optional.
+    const { needsOwnCode } = await import('../src/lib/viewer');
+    expect(missingFor(lr, 'arthur', false)).toEqual([]);
+    expect(needsOwnCode(lr, 'arthur')).toBe(true);
+    expect(needsOwnCode(lr, 'casal')).toBe(false);
   });
   it('a code typed by Arthur in the app counts as his confirmation only', async () => {
     const { applyLocal } = await import('../src/lib/localStore');

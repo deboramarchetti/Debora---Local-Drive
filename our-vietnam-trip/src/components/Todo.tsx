@@ -7,22 +7,23 @@ import { hasLocalChanges, mergeLocal, saveLocal } from '../lib/localStore';
 import { fmtDayMonthShort, fmtWeekdayShort } from '../lib/time';
 import { usePrivate } from '../state/privateData';
 import { BOOKING_LABEL } from './Reservations';
-import { VIEWER, missingFor, partyKey, viewerName } from '../lib/viewer';
+import { VIEWER, missingFor, needsOwnCode, partyKey, viewerName } from '../lib/viewer';
 
 /* ------------------------------------------------------------- the lists */
 
-type Target = { type: 'booking' | 'flight' | 'hotel'; id: string; title: string; date: string; priority?: Priority; bookBy?: string; missing?: string[]; notes?: string; local?: boolean; status?: Status; perParty?: boolean };
+type Target = { type: 'booking' | 'flight' | 'hotel'; id: string; title: string; date: string; priority?: Priority; bookBy?: string; missing?: string[]; notes?: string; local?: boolean; status?: Status; perParty?: boolean; ownCode?: boolean };
 
 function collect() {
   const all: Target[] = [
-    ...model.bookings.map((b) => ({ type: 'booking' as const, id: b.id, title: b.title, date: b.date, priority: b.priority, bookBy: b.bookBy, missing: missingFor(b), notes: b.notes, status: b.status, perParty: b.perParty, local: localStore.items.some((i) => i.id === b.id) })),
-    ...model.flights.map((f) => ({ type: 'flight' as const, id: f.id, title: `Voo ${f.from} → ${f.to}${f.flightNumber ? ` · ${f.flightNumber}` : ''}`, date: f.departDate, priority: f.priority, bookBy: f.bookBy, missing: missingFor(f), status: f.status, perParty: f.perParty })),
-    ...model.hotels.map((h) => ({ type: 'hotel' as const, id: h.id, title: model.place(h.placeId)?.name ?? h.id, date: h.checkIn, priority: h.priority, bookBy: h.bookBy, missing: missingFor(h), status: h.status, perParty: h.perParty })),
+    ...model.bookings.map((b) => ({ type: 'booking' as const, id: b.id, title: b.title, date: b.date, priority: b.priority, bookBy: b.bookBy, missing: missingFor(b, VIEWER, false), ownCode: needsOwnCode(b), notes: b.notes, status: b.status, perParty: b.perParty, local: localStore.items.some((i) => i.id === b.id) })),
+    ...model.flights.map((f) => ({ type: 'flight' as const, id: f.id, title: `Voo ${f.from} → ${f.to}${f.flightNumber ? ` · ${f.flightNumber}` : ''}`, date: f.departDate, priority: f.priority, bookBy: f.bookBy, missing: missingFor(f, VIEWER, false), ownCode: needsOwnCode(f), status: f.status, perParty: f.perParty })),
+    ...model.hotels.map((h) => ({ type: 'hotel' as const, id: h.id, title: model.place(h.placeId)?.name ?? h.id, date: h.checkIn, priority: h.priority, bookBy: h.bookBy, missing: missingFor(h, VIEWER, false), ownCode: needsOwnCode(h), status: h.status, perParty: h.perParty })),
   ];
   const rank = { high: 0, medium: 1, low: 2 } as const;
   const toBook = all.filter((t) => t.status === 'pending').sort((a, b) => rank[a.priority ?? 'low'] - rank[b.priority ?? 'low'] || a.date.localeCompare(b.date));
   const missing = all.filter((t) => t.status !== 'pending' && t.missing?.length).sort((a, b) => a.date.localeCompare(b.date));
-  return { toBook, missing };
+  const codes = all.filter((t) => t.status !== 'pending' && t.ownCode).sort((a, b) => a.date.localeCompare(b.date));
+  return { toBook, missing, codes };
 }
 
 const PRIORITY: Record<Priority, { label: string; cls: string }> = {
@@ -37,7 +38,7 @@ export function todoCounts() {
 }
 
 export function TodoPanel() {
-  const { toBook, missing } = collect();
+  const { toBook, missing, codes } = collect();
   const [editing, setEditing] = useState<Target | 'new' | null>(null);
   return (
     <div className="space-y-6">
@@ -77,6 +78,25 @@ export function TodoPanel() {
                   <div className="text-[12.5px] text-ink-3">Falta: {t.missing!.join(' · ')}</div>
                 </div>
                 <button onClick={() => setEditing(t)} className="tap shrink-0 rounded-full bg-paper-2 px-3 py-1.5 text-[12.5px] font-semibold">Completar</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {codes.length > 0 && (
+        <section>
+          <h3 className="mb-1 flex items-baseline gap-2 px-5 font-display text-[19px]">Seus códigos de reserva <span className="font-sans text-[13px] text-ink-3">opcional</span></h3>
+          <p className="mb-2 px-5 text-[12.5px] text-ink-3">{viewerName()}: reservado nos mesmos hotéis e voos, nas mesmas datas. Se quiser ter os seus localizadores e PINs à mão no app, adicione aqui.</p>
+          <ul className="card mx-4 divide-y divide-line">
+            {codes.map((t) => (
+              <li key={t.id} className="flex items-center gap-3 px-4 py-2.5">
+                <CheckCircle2 size={15} className="shrink-0 text-jade" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[14px] font-medium">{t.title}</div>
+                  <div className="text-[12px] text-ink-3">{fmtWeekdayShort(t.date)}, {fmtDayMonthShort(t.date)} · reservado</div>
+                </div>
+                <button onClick={() => setEditing(t)} className="tap shrink-0 rounded-full bg-paper-2 px-3 py-1.5 text-[12.5px] font-semibold">Adicionar código</button>
               </li>
             ))}
           </ul>

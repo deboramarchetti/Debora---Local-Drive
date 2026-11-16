@@ -30,13 +30,19 @@ export const partyKey = (id: string, party = VIEWER) => (party ? `${id}@${party}
 
 type WithMissing = { missing?: string[]; missingFor?: Record<string, string[]>; perParty?: boolean; confirmations?: string[] };
 
-/** What is still missing for this phone's party (or for everyone when no party is chosen). */
-export function missingFor(x: WithMissing, party = VIEWER): string[] {
+/** Booked for this party, but its own booking code is not in the app yet. */
+export const needsOwnCode = (x: WithMissing, party = VIEWER) => !!party && !!x.perParty && !x.confirmations?.includes(party);
+
+/**
+ * What is still missing for this phone's party (or for everyone when no party is chosen).
+ * withCodes=false leaves out "this party's booking code", which the to-do list shows apart.
+ */
+export function missingFor(x: WithMissing, party = VIEWER, withCodes = true): string[] {
   const out = [...(x.missing ?? [])];
   const parties = party ? PARTIES.filter((p) => p.id === party) : PARTIES;
   for (const p of parties) {
     out.push(...(x.missingFor?.[p.id] ?? []));
-    if (x.perParty && !x.confirmations?.includes(p.id)) out.push(party ? 'sua confirmação (código, PIN)' : `confirmação de ${p.name}`);
+    if (withCodes && x.perParty && !x.confirmations?.includes(p.id)) out.push(party ? 'sua confirmação (código, PIN)' : `confirmação de ${p.name}`);
   }
   return out;
 }
