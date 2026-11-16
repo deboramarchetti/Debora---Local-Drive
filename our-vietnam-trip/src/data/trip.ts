@@ -86,7 +86,7 @@ const airports: Airport[] = [
 ];
 
 // --------------------------------------------------------------- flights
-// International legs: Qatar Airways confirmations (outbound QZ1Z5BDQ screenshot, return e-ticket PDF).
+// International legs: Qatar Airways confirmations (outbound screenshot, return e-ticket PDF).
 const flights: Flight[] = [
   { id: 'gru-doh', parties: ['casal'], airline: 'Qatar Airways', flightNumber: 'QR 780', from: 'GRU', to: 'DOH', departDate: '2026-11-20', departTime: '20:25', arriveDate: '2026-11-21', arriveTime: '16:00', departTerminal: '3', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', perParty: true, confirmations: ['casal'], notes: 'Ida. Stopover em Doha (Millennium Plaza Doha) antes do voo para Hanói.' },
   { id: 'doh-han', airline: 'Qatar Airways', flightNumber: 'QR 976', from: 'DOH', to: 'HAN', departDate: '2026-11-23', departTime: '01:50', arriveDate: '2026-11-23', arriveTime: '12:20', arriveTerminal: '2', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', perParty: true, confirmations: ['casal'], notes: 'Chegada em Hanói. Arthur vem no mesmo voo (reserva própria).' },
