@@ -1,0 +1,6 @@
+{
+  "_comment": "Copy to private/private.json (git-ignored). Keys are the ids used in src/data/trip.ts (flight, hotel or booking id).",
+  "flight-id-example": { "bookingRef": "ABC123", "ticketNumbers": ["000-0000000000"] },
+  "hotel-id-example": { "bookingRef": "1234567890", "phone": "+84 ...", "notes": "PIN da reserva ..." },
+  "booking-id-example": { "bookingRef": "XYZ", "contact": "Nome do guia", "phone": "+84 ..." }
+}
