@@ -46,3 +46,31 @@ export function missingFor(x: WithMissing, party = VIEWER, withCodes = true): st
   }
   return out;
 }
+
+/**
+ * The itinerary as one party lives it: drops flights, hotels, bookings and
+ * activities that are only for other parties (and places used only by them).
+ */
+export function forParty<T extends import('../data/types').TripData>(data: T, party = VIEWER): T {
+  if (!party) return data;
+  const mine = (x: { parties?: string[] }) => !x.parties || x.parties.includes(party);
+  const flights = data.flights.filter(mine);
+  const hotels = data.hotels.filter(mine);
+  const bookings = data.bookings.filter(mine);
+  const ids = new Set([...flights, ...hotels, ...bookings].map((x) => x.id));
+  const dropped = new Set([...data.flights, ...data.hotels, ...data.bookings].filter((x) => !ids.has(x.id)).map((x) => x.id));
+  const hotelPlacesGone = new Set(data.hotels.filter((h) => dropped.has(h.id)).map((h) => h.placeId));
+  return {
+    ...data,
+    flights,
+    hotels,
+    bookings,
+    places: data.places.filter((p) => !hotelPlacesGone.has(p.id) || hotels.some((h) => h.placeId === p.id)),
+    days: data.days.map((d) => ({
+      ...d,
+      summary: d.summaryFor?.[party] ?? d.summary,
+      hotelId: d.hotelId && dropped.has(d.hotelId) ? undefined : d.hotelId,
+      activities: d.activities.filter((a) => mine(a) && !(a.flightId && dropped.has(a.flightId)) && !(a.bookingId && dropped.has(a.bookingId)) && !(a.hotelId && dropped.has(a.hotelId))),
+    })),
+  };
+}

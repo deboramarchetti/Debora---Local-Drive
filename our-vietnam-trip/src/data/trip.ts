@@ -88,18 +88,18 @@ const airports: Airport[] = [
 // --------------------------------------------------------------- flights
 // International legs: Qatar Airways confirmations (outbound QZ1Z5BDQ screenshot, return e-ticket PDF).
 const flights: Flight[] = [
-  { id: 'gru-doh', airline: 'Qatar Airways', flightNumber: 'QR 780', from: 'GRU', to: 'DOH', departDate: '2026-11-20', departTime: '20:25', arriveDate: '2026-11-21', arriveTime: '16:00', departTerminal: '3', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', perParty: true, confirmations: ['casal'], notes: 'Ida. Stopover em Doha (Millennium Plaza Doha) antes do voo para Hanói.' },
-  { id: 'doh-han', airline: 'Qatar Airways', flightNumber: 'QR 976', from: 'DOH', to: 'HAN', departDate: '2026-11-23', departTime: '01:50', arriveDate: '2026-11-23', arriveTime: '12:20', arriveTerminal: '2', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', perParty: true, confirmations: ['casal'], notes: 'Chegada em Hanói.' },
+  { id: 'gru-doh', parties: ['casal'], airline: 'Qatar Airways', flightNumber: 'QR 780', from: 'GRU', to: 'DOH', departDate: '2026-11-20', departTime: '20:25', arriveDate: '2026-11-21', arriveTime: '16:00', departTerminal: '3', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', perParty: true, confirmations: ['casal'], notes: 'Ida. Stopover em Doha (Millennium Plaza Doha) antes do voo para Hanói.' },
+  { id: 'doh-han', airline: 'Qatar Airways', flightNumber: 'QR 976', from: 'DOH', to: 'HAN', departDate: '2026-11-23', departTime: '01:50', arriveDate: '2026-11-23', arriveTime: '12:20', arriveTerminal: '2', baggage: 'Economy · 2 malas por adulto', status: 'confirmed', perParty: true, confirmations: ['casal'], notes: 'Chegada em Hanói. Arthur vem no mesmo voo (reserva própria).' },
   { id: 'hph-dad', from: 'HPH', to: 'DAD', departDate: '2026-11-28', departTime: '16:15', arriveDate: '2026-11-28', arriveTime: '17:30', status: 'confirmed', notes: 'Voo direto Hai Phong (Cat Bi) → Da Nang.', missing: ['companhia e número do voo', 'código da reserva', 'bagagem incluída'] },
   { id: 'hui-sgn', airline: 'VietJet Air', flightNumber: 'VJ 1311', from: 'HUI', to: 'SGN', departDate: '2026-12-02', departTime: '17:50', arriveDate: '2026-12-02', arriveTime: '19:15', baggage: 'Por pessoa: 1 mala de mão 7 kg (23×36×56 cm) + 1 mala despachada 20 kg. Itens pessoais não incluídos.', seats: '4C, 4D, 5D', status: 'confirmed', notes: 'Direto · 1h25 · Econômica. 3 viajantes. Permite alteração; reembolso parcial se cancelar.' },
-  { id: 'sgn-doh', airline: 'Qatar Airways', flightNumber: 'QR 971', from: 'SGN', to: 'DOH', departDate: '2026-12-06', departTime: '19:40', arriveDate: '2026-12-06', arriveTime: '23:40', departTerminal: '2', baggage: 'Economy · 2 malas (2PC)', status: 'confirmed', perParty: true, confirmations: ['casal'], missingFor: { casal: ['bilhete da Débora (o PDF enviado é só do Renato)'] }, notes: 'Qatar recomenda chegar ao aeroporto 3h antes; check-in online abre 48h antes. Na conexão em Doha: lounge, comida, banho e descanso.' },
-  { id: 'doh-gru', airline: 'Qatar Airways', flightNumber: 'QR 785', from: 'DOH', to: 'GRU', departDate: '2026-12-07', departTime: '00:25', arriveDate: '2026-12-07', arriveTime: '09:30', arriveTerminal: '3', baggage: 'Economy · 2 malas (2PC)', status: 'confirmed', perParty: true, confirmations: ['casal'], missingFor: { casal: ['bilhete da Débora (o PDF enviado é só do Renato)'] }, notes: 'Último trecho, para São Paulo.' },
+  { id: 'sgn-doh', parties: ['casal'], airline: 'Qatar Airways', flightNumber: 'QR 971', from: 'SGN', to: 'DOH', departDate: '2026-12-06', departTime: '19:40', arriveDate: '2026-12-06', arriveTime: '23:40', departTerminal: '2', baggage: 'Economy · 2 malas (2PC)', status: 'confirmed', perParty: true, confirmations: ['casal'], missingFor: { casal: ['bilhete da Débora (o PDF enviado é só do Renato)'] }, notes: 'Qatar recomenda chegar ao aeroporto 3h antes; check-in online abre 48h antes. Na conexão em Doha: lounge, comida, banho e descanso.' },
+  { id: 'doh-gru', parties: ['casal'], airline: 'Qatar Airways', flightNumber: 'QR 785', from: 'DOH', to: 'GRU', departDate: '2026-12-07', departTime: '00:25', arriveDate: '2026-12-07', arriveTime: '09:30', arriveTerminal: '3', baggage: 'Economy · 2 malas (2PC)', status: 'confirmed', perParty: true, confirmations: ['casal'], missingFor: { casal: ['bilhete da Débora (o PDF enviado é só do Renato)'] }, notes: 'Último trecho, para São Paulo.' },
 ];
 
 // ---------------------------------------------------------------- hotels
 // Only bookings marked "RESERVADO" in the doc. Ho Chi Minh City: not booked yet.
 const hotels: Hotel[] = [
-  { id: 'h-millennium-doha', placeId: 'millennium-plaza-doha', checkIn: '2026-11-21', checkOut: '2026-11-22', bookedVia: 'Qatar Airways (pacote voo + hotel)', status: 'confirmed', perParty: true, confirmations: ['casal'], missing: ['datas exatas de check-in/check-out (21→22/11 é suposição)'], notes: 'Stopover de ida. As datas do hotel não aparecem na parte da confirmação enviada; o roteiro diz 1 noite (check-out 22/11 é uma suposição — confirmar). O voo para Hanói sai 23/11 à 01:50.' },
+  { id: 'h-millennium-doha', parties: ['casal'], placeId: 'millennium-plaza-doha', checkIn: '2026-11-21', checkOut: '2026-11-22', bookedVia: 'Qatar Airways (pacote voo + hotel)', status: 'confirmed', perParty: true, confirmations: ['casal'], missing: ['datas exatas de check-in/check-out (21→22/11 é suposição)'], notes: 'Stopover de ida. As datas do hotel não aparecem na parte da confirmação enviada; o roteiro diz 1 noite (check-out 22/11 é uma suposição — confirmar). O voo para Hanói sai 23/11 à 01:50.' },
   { id: 'h-oriental-jade', placeId: 'oriental-jade', checkIn: '2026-11-23', checkOut: '2026-11-25', bookedVia: 'Booking.com', status: 'confirmed', perParty: true, confirmations: [], notes: 'Débora e Renato e Arthur: reservas separadas, mesmo hotel e mesmas datas.', missing: ['endereço e horários de check-in/check-out'] },
   { id: 'h-la-lua', placeId: 'la-lua', checkIn: '2026-11-25', checkOut: '2026-11-27', bookedVia: 'Booking.com', status: 'confirmed', perParty: true, confirmations: [], notes: 'Débora e Renato e Arthur: reservas separadas, mesmo hotel e mesmas datas.', missing: ['endereço e horários de check-in/check-out'] },
   { id: 'h-orchid-cruise', placeId: 'orchid-cruise', checkIn: '2026-11-27', checkOut: '2026-11-28', roomType: 'Cruzeiro Ha Long / Lan Ha 2D1N — noite a bordo', bookedVia: 'Booking.com', status: 'confirmed', perParty: true, confirmations: [], missing: ['horário e ponto de embarque', 'se o transfer está incluso'], notes: 'Débora e Renato e Arthur: reservas separadas, mesmo cruzeiro. Embarque próximo ao almoço. Normalmente inclui navegação, caiaque, cavernas ou ilhas, sunset no deck e jantar.' },
@@ -111,6 +111,7 @@ const hotels: Hotel[] = [
 // ---------------------------------------------- transports & tours to book
 // From the doc's booking table. None of these is marked as reserved yet.
 const bookings: Booking[] = [
+  { id: 'b-arthur-saida', parties: ['arthur'], kind: 'other', title: 'Voo de saída do Arthur do Vietnã', date: '2026-12-06', priority: 'medium', bookBy: 'informar companhia, nº do voo e horário', status: 'pending', notes: 'Arthur volta separado (não está nos voos Qatar de 06/12 de Débora e Renato).' },
   { id: 'b-visa', kind: 'other', title: 'Visto do Vietnã', date: '2026-11-23', priority: 'high', bookBy: 'antes do embarque (20/11)', status: 'pending', notes: 'Planilha "To dos": Visa — To Do.' },
   { id: 'b-transfer-han-hotel', kind: 'transfer', title: 'Transfer aeroporto de Hanói → Oriental Jade', date: '2026-11-23', fromPlaceId: 'han-airport', toPlaceId: 'oriental-jade', priority: 'low', bookBy: 'opcional (o roteiro cita o transfer; não está na tabela de reservas)', status: 'pending' },
   { id: 'b-transfer-han-nb', kind: 'transfer', title: 'Transfer Hanói → Ninh Binh', date: '2026-11-25', fromPlaceId: 'oriental-jade', toPlaceId: 'la-lua', priority: 'low', bookBy: 'opcional (o roteiro cita o transfer; não está na tabela de reservas)', status: 'pending' },
@@ -290,15 +291,17 @@ const days: Day[] = [
     date: '2026-12-06', cityIds: ['ho-chi-minh'],
     title: 'Último dia sem correria',
     summary: 'Voo somente às 19h40, então ainda existe boa parte do dia para aproveitar.',
+    summaryFor: { arthur: 'Último dia em Ho Chi Minh City, sem correria. O voo de saída do Arthur ainda não foi informado.' },
     activities: sug([
       { id: 'd14-breakfast', kind: 'meal', title: 'Café da manhã sem pressa / brunch', period: 'morning' },
       { id: 'd14-shopping', kind: 'activity', title: 'Últimas compras e café vietnamita', period: 'morning' },
       { id: 'd14-spa', kind: 'free-time', title: 'Massagem ou spa', period: 'morning' },
       { id: 'd14-lunch', kind: 'meal', title: 'Almoço', period: 'afternoon' },
       { id: 'd14-checkout', kind: 'check-out', title: 'Check-out do Fusion (até 12:00) — pedir late checkout', period: 'afternoon', hotelId: 'h-fusion-saigon', placeId: 'fusion-saigon', notes: 'Banho e troca de roupa antes do voo. Pegar de volta a caução.' },
-      { id: 'd14-to-airport', kind: 'transfer', title: 'Sair do hotel para o aeroporto', time: '15:15', placeId: 'sgn-airport', notes: 'Entre 15h15 e 15h30, para chegar com boa antecedência para o voo internacional.' },
-      { id: 'd14-flight', kind: 'flight', title: 'Voo Ho Chi Minh City → Doha', time: '19:40', flightId: 'sgn-doh', status: 'confirmed' },
-      { id: 'd14-flight-gru', kind: 'flight', title: 'Conexão Doha → São Paulo', period: 'evening', flightId: 'doh-gru', status: 'confirmed', description: 'Chegada em Doha às 23:40 (horário de Doha); voo para São Paulo às 00:25 de 07/12, chegada 09:30.' },
+      { id: 'd14-to-airport', parties: ['casal'], kind: 'transfer', title: 'Sair do hotel para o aeroporto', time: '15:15', placeId: 'sgn-airport', notes: 'Entre 15h15 e 15h30, para chegar com boa antecedência para o voo internacional.' },
+      { id: 'd14-arthur-exit', parties: ['arthur'], kind: 'flight', title: 'Saída do Arthur do Vietnã', period: 'evening', bookingId: 'b-arthur-saida', status: 'pending', notes: 'Voo e horário ainda não informados.' },
+      { id: 'd14-flight', parties: ['casal'], kind: 'flight', title: 'Voo Ho Chi Minh City → Doha', time: '19:40', flightId: 'sgn-doh', status: 'confirmed' },
+      { id: 'd14-flight-gru', parties: ['casal'], kind: 'flight', title: 'Conexão Doha → São Paulo', period: 'evening', flightId: 'doh-gru', status: 'confirmed', description: 'Chegada em Doha às 23:40 (horário de Doha); voo para São Paulo às 00:25 de 07/12, chegada 09:30.' },
     ]),
   },
 ];
@@ -317,7 +320,7 @@ export const tripData: TripData = {
       { id: 'casal', name: 'Débora e Renato' },
       { id: 'arthur', name: 'Arthur' },
     ],
-    intro: 'São Paulo → Doha (stopover) → Hanói → Ninh Binh → Ha Long Bay → Hoi An → Hue → Ho Chi Minh City → Doha → São Paulo. 13 noites no Vietnã.',
+    intro: 'Hanói → Ninh Binh → Ha Long Bay → Hoi An → Hue → Ho Chi Minh City: 13 noites no Vietnã.',
   },
   cities,
   places,

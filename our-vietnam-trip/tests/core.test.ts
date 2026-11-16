@@ -199,3 +199,25 @@ describe('per-party view (same hotels, separate reservations)', () => {
     expect(m.hotel('h-la-lua')!.confirmations).toEqual([]);
   });
 });
+
+describe('what each party takes part in', () => {
+  it('Arthur starts in Doha → Hanoi and returns separately', async () => {
+    const { forParty } = await import('../src/lib/viewer');
+    const a = buildModel(forParty(tripData, 'arthur'));
+    expect(a.flights.map((f) => f.id)).toEqual(['doh-han', 'hph-dad', 'hui-sgn']);
+    expect(a.hotels.some((h) => h.id === 'h-millennium-doha')).toBe(false);
+    expect(a.places.some((p) => p.id === 'millennium-plaza-doha')).toBe(false);
+    const d14 = a.day('2026-12-06')!.activities.map((x) => x.id);
+    expect(d14).toContain('d14-arthur-exit');
+    expect(d14).not.toContain('d14-flight');
+    expect(d14).not.toContain('d14-to-airport');
+    expect(a.booking('b-arthur-saida')!.status).toBe('pending');
+    expect(validateTrip(forParty(tripData, 'arthur')).filter((i) => i.level === 'error')).toEqual([]);
+
+    const c = buildModel(forParty(tripData, 'casal'));
+    expect(c.flights.map((f) => f.id)).toEqual(['gru-doh', 'doh-han', 'hph-dad', 'hui-sgn', 'sgn-doh', 'doh-gru']);
+    expect(c.booking('b-arthur-saida')).toBeUndefined();
+    expect(c.day('2026-12-06')!.activities.map((x) => x.id)).not.toContain('d14-arthur-exit');
+    expect(validateTrip(forParty(tripData, 'casal')).filter((i) => i.level === 'error')).toEqual([]);
+  });
+});

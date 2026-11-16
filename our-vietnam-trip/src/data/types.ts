@@ -133,6 +133,8 @@ interface Bookable {
   priority?: Priority;
   /** Each party has its own reservation for this (same hotel/flight, different codes). */
   perParty?: boolean;
+  /** Only these parties take part (e.g. Arthur skips the São Paulo → Doha legs). Omit = everyone. */
+  parties?: string[];
   /** Parties whose confirmation is already in the app (only for perParty items). */
   confirmations?: string[];
   /** Missing details that concern only one party. */
@@ -231,6 +233,8 @@ export interface Activity {
   status: Status;
   /** Marked as a trip highlight (⭐) in the itinerary. */
   highlight?: boolean;
+  /** Only for these parties (omit = everyone). */
+  parties?: string[];
   /** Links to reservations — their details are shown on the card. */
   flightId?: string;
   bookingId?: string;
@@ -243,6 +247,8 @@ export interface Day {
   cityIds: string[];
   title?: string;
   summary?: string;
+  /** Replaces `summary` for one party (e.g. a different flight home). */
+  summaryFor?: Record<string, string>;
   photo?: Photo;
   /** Hotel where we sleep that night (omit on overnight flights). */
   hotelId?: string;

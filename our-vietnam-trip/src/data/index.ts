@@ -2,6 +2,7 @@ import { buildModel } from './model';
 import { sampleData } from './sample';
 import { tripData } from './trip';
 import { applyLocal, loadLocal } from '../lib/localStore';
+import { forParty } from '../lib/viewer';
 
 const SAMPLE_KEY = 'ovt:sample';
 
@@ -20,5 +21,6 @@ function sampleMode(): boolean {
 export const IS_SAMPLE = sampleMode();
 /** Changes saved on this phone (applied on top of the published itinerary). */
 export const localStore = loadLocal();
-export const model = buildModel(IS_SAMPLE ? sampleData : applyLocal(tripData, localStore));
+/** The itinerary as this phone's party lives it, with this phone's changes applied. */
+export const model = buildModel(IS_SAMPLE ? sampleData : forParty(applyLocal(tripData, localStore)));
 export type { TripModel } from './model';
