@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
 import { Banners } from './components/Banners';
 import { Overview } from './pages/Overview';
@@ -15,9 +15,12 @@ function ScrollTop() {
   return null;
 }
 
+// The claude.ai preview frame has no real URL paths: keep routes in memory there.
+const Router = __PREVIEW__ ? MemoryRouter : BrowserRouter;
+
 export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <OfflineProvider>
         <PrivateProvider>
           <ScrollTop />
@@ -35,6 +38,6 @@ export default function App() {
           <BottomNav />
         </PrivateProvider>
       </OfflineProvider>
-    </BrowserRouter>
+    </Router>
   );
 }

@@ -2,12 +2,19 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { viteSingleFile } from 'vite-plugin-singlefile';
+import { fileURLToPath } from 'node:url';
+
+/** PREVIEW=1 → one self-contained HTML file (no service worker) to preview on claude.ai. */
+const PREVIEW = process.env.PREVIEW === '1';
 
 const BUILD_ID = new Date().toISOString();
 
 export default defineConfig({
-  define: { __BUILD_ID__: JSON.stringify(BUILD_ID) },
-  plugins: [
+  define: { __BUILD_ID__: JSON.stringify(BUILD_ID), __PREVIEW__: JSON.stringify(PREVIEW) },
+  resolve: PREVIEW ? { alias: { 'virtual:pwa-register/react': fileURLToPath(new URL('./src/preview/pwa-stub.ts', import.meta.url)) } } : undefined,
+  build: PREVIEW ? { outDir: 'dist-preview', assetsInlineLimit: 100_000_000 } : undefined,
+  plugins: PREVIEW ? [react(), tailwindcss(), viteSingleFile()] : [
     react(),
     tailwindcss(),
     VitePWA({

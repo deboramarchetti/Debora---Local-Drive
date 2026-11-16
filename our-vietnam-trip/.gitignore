@@ -5,3 +5,4 @@ dev-dist
 # Plain-text private trip data (booking codes, contacts). Only the encrypted
 # file src/data/private.enc.json is committed.
 private/
+dist-preview

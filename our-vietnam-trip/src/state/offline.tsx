@@ -29,7 +29,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    if (import.meta.env.DEV) { setStatus({ state: 'unsupported', message: 'Modo offline só funciona na versão publicada (npm run build).' }); return; }
+    if (import.meta.env.DEV || __PREVIEW__) { setStatus({ state: 'unsupported', message: __PREVIEW__ ? 'Prévia no computador: o modo offline funciona no app instalado no celular.' : 'Modo offline só funciona na versão publicada (npm run build).' }); return; }
     verifyOffline().then(setStatus);
     const on = () => setOnline(true);
     const off = () => setOnline(false);
