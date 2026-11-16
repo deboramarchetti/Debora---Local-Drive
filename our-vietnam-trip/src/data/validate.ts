@@ -114,7 +114,7 @@ export function validateTrip(data: TripData): Issue[] {
     }
     if (trip.dataStatus === 'imported') {
       if (!day.cityIds.length) missing(w, 'dia sem cidade definida');
-      if (!day.hotelId && day.date !== trip.endDate) missing(w, 'sem hotel para esta noite (ok se for voo noturno)');
+      if (!day.hotelId && day.date !== trip.endDate) missing(w, day.stayNote ? `hotel não reservado: ${day.stayNote}` : 'sem hotel para esta noite (ok se for voo noturno)');
       if (!day.activities.length) missing(w, 'dia sem atividades');
     }
     for (const a of day.activities) {
@@ -128,7 +128,7 @@ export function validateTrip(data: TripData): Issue[] {
         referencedFlights.add(a.flightId);
         const f = data.flights.find((x) => x.id === a.flightId);
         if (!flightIds.has(a.flightId)) err(aw, `unknown flightId "${a.flightId}"`);
-        else if (f && f.departDate !== day.date && (f.arriveDate ?? f.departDate) !== day.date) warn(aw, `flight ${f.flightNumber} is not on this date`);
+        else if (f && f.departDate !== day.date && (f.arriveDate ?? f.departDate) !== day.date && f.departDate !== addDays(day.date, 1)) warn(aw, `flight ${f.id} is not on this date`);
       }
       if (a.bookingId) {
         referencedBookings.add(a.bookingId);
@@ -146,7 +146,7 @@ export function validateTrip(data: TripData): Issue[] {
       if (prev.endTime && prev.endTime > timed[i].time!) warn(w, `"${prev.title}" ends ${prev.endTime}, after "${timed[i].title}" starts ${timed[i].time}`);
     }
   }
-  for (const f of data.flights) if (!referencedFlights.has(f.id)) warn(`flight:${f.id}`, 'not shown on any day (add an activity with flightId)');
+  for (const f of data.flights) if (!referencedFlights.has(f.id) && f.departDate >= trip.startDate && f.departDate <= trip.endDate) warn(`flight:${f.id}`, 'not shown on any day (add an activity with flightId)');
   for (const b of data.bookings) if (!referencedBookings.has(b.id)) warn(`booking:${b.id}`, 'not shown on any day (add an activity with bookingId)');
 
   return issues;

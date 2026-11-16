@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ArrowLeft, ArrowRight, Bed, CalendarClock, ChevronLeft, ChevronRight, MapPin, MoveRight } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, Bed, CalendarClock, ChevronLeft, ChevronRight, MapPin, MoveRight } from 'lucide-react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { model } from '../data';
 import { dayNumber } from '../data/model';
@@ -92,6 +92,17 @@ export function DayPage() {
               {fixed.map((a) => (
                 <div key={a.id} className="flex gap-2"><b className="tabular-nums text-lacquer">{a.time}</b><span className="truncate text-ink-2">{a.title}</span></div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Night without a booked hotel */}
+        {!hotel && day.stayNote && (
+          <div className="flex gap-3 rounded-[var(--radius-card)] border border-dashed border-gold/70 bg-gold-soft/40 p-4">
+            <AlertCircle size={18} className="mt-0.5 shrink-0 text-gold" aria-hidden />
+            <div className="text-[13.5px] text-ink-2">
+              <div className="font-semibold text-ink">Hotel desta noite ainda não reservado</div>
+              {day.stayNote}
             </div>
           </div>
         )}

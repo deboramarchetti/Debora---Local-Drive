@@ -66,8 +66,8 @@ export function FlightCard({ flight: f, compact }: { flight: Flight; compact?: b
       <div className="flex items-center justify-between gap-2 border-b border-dashed border-line px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2 text-[13px]">
           <Plane size={15} className="shrink-0 text-lacquer" aria-hidden />
-          <span className="truncate font-medium">{f.airline}</span>
-          <span className="shrink-0 whitespace-nowrap text-ink-3">· {f.flightNumber}</span>
+          <span className="truncate font-medium">{f.airline ?? 'Voo'}</span>
+          {f.flightNumber && <span className="shrink-0 whitespace-nowrap text-ink-3">· {f.flightNumber}</span>}
         </div>
         <StatusBadge status={f.status} compact={compact} />
       </div>

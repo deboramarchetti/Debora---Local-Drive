@@ -92,12 +92,17 @@ export function buildModel(data: TripData): TripModel {
     route: finalRoute,
     routeProvisional,
     schedule: (day) => {
-      const sorted = [...day.activities].sort((a, b) => {
-        const pa = periodRank(periodOf(a.time, a.period));
-        const pb = periodRank(periodOf(b.time, b.period));
-        if (pa !== pb) return pa - pb;
-        return (minutesOf(a.time) ?? 9999) - (minutesOf(b.time) ?? 9999);
-      });
+      // Group by period (stable), then sort the timed items among themselves;
+      // untimed items keep the position they have in the itinerary.
+      const byPeriod = [...day.activities].sort(
+        (a, b) => periodRank(periodOf(a.time, a.period)) - periodRank(periodOf(b.time, b.period)),
+      );
+      const sorted: Activity[] = [];
+      for (const rank of [0, 1, 2, 3]) {
+        const g = byPeriod.filter((a) => periodRank(periodOf(a.time, a.period)) === rank);
+        const timed = g.filter((a) => a.time).sort((a, b) => minutesOf(a.time)! - minutesOf(b.time)!);
+        sorted.push(...g.map((a) => (a.time ? timed.shift()! : a)));
+      }
       const groups: { period: Period | 'anytime'; items: Activity[] }[] = [];
       for (const a of sorted) {
         const p = periodOf(a.time, a.period) ?? 'anytime';

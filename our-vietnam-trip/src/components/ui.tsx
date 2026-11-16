@@ -39,7 +39,7 @@ export function SectionTitle({ eyebrow, title, action }: { eyebrow?: string; tit
   );
 }
 
-type MapPlace = Pick<Place, 'name' | 'address' | 'coords' | 'googlePlaceId'>;
+type MapPlace = Pick<Place, 'name' | 'address' | 'coords' | 'googlePlaceId' | 'mapsQuery'>;
 
 /** Primary "open in Google Maps" action. */
 export function MapsButton({ place, label = 'Abrir no Maps', variant = 'soft', directions }: {

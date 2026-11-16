@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import { IS_SAMPLE, model } from '../data';
 import { dayNumber, tripPhase } from '../data/model';
 import { useToday } from '../hooks';
-import { addDays, fmtDayMonthShort, fmtFull, fmtRange, fmtWeekdayShort } from '../lib/time';
+import { addDays, daysBetween, fmtDayMonthShort, fmtFull, fmtRange, fmtWeekdayShort } from '../lib/time';
 import { Cover } from '../components/Cover';
 import { VietnamMap } from '../components/VietnamMap';
 import { OfflineCard } from '../components/OfflineCard';
-import { FlightCard, HotelCard } from '../components/Reservations';
+import { FlightCard } from '../components/Reservations';
 import { EmptyState, PlaceholderBadge, SectionTitle } from '../components/ui';
 
 export function Overview() {
@@ -127,7 +127,7 @@ export function Overview() {
                     {(d.title || flights.length > 0) && (
                       <div className="flex items-center gap-1.5 truncate text-[12.5px] text-ink-3">
                         {flights.length > 0 && <Plane size={12} className="shrink-0 text-lacquer" aria-hidden />}
-                        {flights.length > 0 ? flights.map((f) => `${f.flightNumber} ${f.from}→${f.to}`).join(', ') : d.title}
+                        {flights.length > 0 ? flights.map((f) => `${f.flightNumber ? f.flightNumber + ' ' : ''}${f.from}→${f.to}${f.departTime && f.departDate === d.date ? ' ' + f.departTime : ''}`).join(', ') : d.title}
                       </div>
                     )}
                   </div>
@@ -143,9 +143,29 @@ export function Overview() {
       <section className="mt-10">
         <SectionTitle eyebrow="Hospedagem" title="Hotéis" action={model.hotels.length > 0 && <Link to="/reservations?tab=hotels" className="text-[13px] font-medium text-lacquer">Ver todos</Link>} />
         {model.hotels.length ? (
-          <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2">
-            {model.hotels.map((h) => <div key={h.id} className="w-[82%] shrink-0 snap-center"><HotelCard hotel={h} compact /></div>)}
-          </div>
+          <ol className="card mx-5 divide-y divide-line">
+            {model.hotels.map((h) => {
+              const p = model.place(h.placeId);
+              return (
+                <li key={h.id}>
+                  <Link to={`/day/${h.checkIn}`} className="tap flex items-center gap-3 px-4 py-3">
+                    <Bed size={16} className="shrink-0 text-jade" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-display text-[16px]">{p?.name}</span>
+                      <span className="block text-[12px] text-ink-3">{model.city(p?.cityId)?.name} · {fmtDayMonthShort(h.checkIn)} – {fmtDayMonthShort(h.checkOut)} · {daysBetween(h.checkIn, h.checkOut)} noite{daysBetween(h.checkIn, h.checkOut) > 1 ? 's' : ''}</span>
+                    </span>
+                    <ArrowRight size={15} className="shrink-0 text-ink-3" aria-hidden />
+                  </Link>
+                </li>
+              );
+            })}
+            {model.days.some((d) => !d.hotelId && d.stayNote) && (
+              <li className="flex items-center gap-3 px-4 py-3 text-[13px] text-ink-2">
+                <Bed size={16} className="shrink-0 text-gold" aria-hidden />
+                <span>{model.city(model.days.find((d) => !d.hotelId && d.stayNote)?.cityIds.at(-1))?.name} · hotel ainda não reservado</span>
+              </li>
+            )}
+          </ol>
         ) : (
           <EmptyState icon={Bed} title="Hotéis a importar">Os hotéis de cada noite aparecerão aqui.</EmptyState>
         )}

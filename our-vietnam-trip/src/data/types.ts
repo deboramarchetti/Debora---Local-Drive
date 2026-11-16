@@ -100,6 +100,8 @@ export interface Place {
   coords?: Coordinates;
   /** Google Maps place id, when known — makes the Maps link exact. */
   googlePlaceId?: string;
+  /** Text searched in Google Maps when there is no address (e.g. "Oriental Jade Hotel, Hanoi"). */
+  mapsQuery?: string;
   description?: string;
   photo?: Photo;
   notes?: string;
@@ -129,8 +131,8 @@ export interface Airport {
 
 export interface Flight {
   id: string;
-  airline: string;
-  flightNumber: string;
+  airline?: string;
+  flightNumber?: string;
   from: string; // Airport code
   to: string; // Airport code
   departDate: ISODate;
@@ -194,6 +196,8 @@ export interface Activity {
   transport?: string;
   notes?: string;
   status: Status;
+  /** Marked as a trip highlight (⭐) in the itinerary. */
+  highlight?: boolean;
   /** Links to reservations — their details are shown on the card. */
   flightId?: string;
   bookingId?: string;
@@ -209,6 +213,8 @@ export interface Day {
   photo?: Photo;
   /** Hotel where we sleep that night (omit on overnight flights). */
   hotelId?: string;
+  /** Shown instead of the hotel card when the night has no booking yet. */
+  stayNote?: string;
   activities: Activity[];
 }
 

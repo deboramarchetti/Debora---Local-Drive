@@ -9,9 +9,15 @@ import { tripData } from './trip';
 const c = (id: string) => tripData.cities.find((x) => x.id === id)!;
 const coords = (id: string, dLat: number, dLng: number) => ({ lat: c(id).coords.lat + dLat, lng: c(id).coords.lng + dLng, verified: false });
 
+const emptyDays = Array.from({ length: 14 }, (_, i) => ({
+  date: new Date(Date.UTC(2026, 10, 23 + i)).toISOString().slice(0, 10),
+  cityIds: [] as string[],
+  activities: [],
+}));
+
 export const sampleData: TripData = {
   ...tripData,
-  trip: { ...tripData.trip, dataStatus: 'placeholder', intro: 'Dados fictícios para visualizar o design. O roteiro real substituirá tudo.' },
+  trip: { ...tripData.trip, dataStatus: 'placeholder', datesConfirmed: false, intro: 'Dados fictícios para visualizar o design. O roteiro real substituirá tudo.' },
   places: [
     { id: 'ex-hotel-hanoi', name: 'Hotel Exemplo Hanói', cityId: 'hanoi', kind: 'hotel', address: 'Endereço de exemplo, Hoàn Kiếm', coords: coords('hanoi', 0.004, -0.002) },
     { id: 'ex-lake', name: 'Lago (exemplo)', cityId: 'hanoi', kind: 'attraction', description: 'Descrição curta de exemplo para mostrar como um lugar aparece no roteiro.', coords: coords('hanoi', 0, 0) },
@@ -36,7 +42,7 @@ export const sampleData: TripData = {
     { id: 'ex-b1', kind: 'transfer', title: 'Transfer aeroporto → hotel (exemplo)', date: '2026-11-23', time: '09:15', fromPlaceId: 'ex-airport-han', toPlaceId: 'ex-hotel-hanoi', durationMin: 45, meetingPoint: 'Saída do desembarque (exemplo)', status: 'confirmed', instructions: 'Instrução de exemplo.' },
     { id: 'ex-b2', kind: 'tour', title: 'Passeio de barco (exemplo)', provider: 'Operadora exemplo', date: '2026-11-25', time: '13:30', meetingPlaceId: 'ex-pier', durationMin: 120, status: 'suggestion' },
   ],
-  days: tripData.days.map((d) => {
+  days: emptyDays.map((d) => {
     if (d.date === '2026-11-23') return {
       ...d, cityIds: ['hanoi'], hotelId: 'ex-h1', title: 'Chegada em Hanói', summary: 'Resumo de exemplo: chegada, check-in e primeira caminhada pelo centro antigo.',
       activities: [

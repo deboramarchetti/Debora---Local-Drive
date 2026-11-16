@@ -1,4 +1,4 @@
-import { Bed, Car, Clock, Coffee, Info, LogIn, LogOut, MapPin, Plane, Route, StickyNote, Sun, Utensils } from 'lucide-react';
+import { Bed, Car, Clock, Star, Coffee, Info, LogIn, LogOut, MapPin, Plane, Route, StickyNote, Sun, Utensils } from 'lucide-react';
 import { model } from '../data';
 import type { Activity, ActivityKind } from '../data/types';
 import { fmtDuration } from '../lib/time';
@@ -41,7 +41,10 @@ export function ActivityCard({ a, isLast }: { a: Activity; isLast: boolean }) {
           )}
           <div className="p-4">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-display text-[18px] font-medium leading-snug">{a.title}</h3>
+              <h3 className="font-display text-[18px] font-medium leading-snug">
+                {a.title}
+                {a.highlight && <Star size={14} className="ml-1.5 inline -translate-y-0.5 fill-gold text-gold" aria-label="Destaque da viagem" />}
+              </h3>
               <StatusBadge status={a.status} compact={a.status === 'suggestion'} />
             </div>
             {(a.endTime || dur) && (
