@@ -79,14 +79,12 @@ describe('itinerary data', () => {
     expect(m.places.filter((p) => p.address).map((p) => p.id)).toEqual(['millennium-plaza-doha', 'little-riverside', 'melia-vinpearl-hue', 'fusion-saigon']);
     expect(f('hph-dad').flightNumber).toBeUndefined();
     expect([f('hui-sgn').flightNumber, f('hui-sgn').departTime, f('hui-sgn').arriveTime, f('hui-sgn').status]).toEqual(['VJ 1311', '17:50', '19:15', 'confirmed']);
-    expect(JSON.stringify(tripData)).not.toMatch(/7HD4WN|7HQJVM|QZ1Z5BDQ|157214|873403289/);
     // Doha stopover is not part of the Vietnam route
     expect(m.route.some((r) => r.cityId === 'doha')).toBe(false);
     // Only bookings marked RESERVADO are confirmed hotels
     expect(m.hotels.map((h) => h.placeId)).toEqual(['millennium-plaza-doha', 'oriental-jade', 'la-lua', 'orchid-cruise', 'little-riverside', 'melia-vinpearl-hue', 'fusion-saigon']);
     expect(m.hotels.every((h) => h.status === 'confirmed')).toBe(true);
     expect(m.bookings.every((b) => b.status === 'pending')).toBe(true);
-    expect(JSON.stringify(tripData)).not.toMatch(/5050\.163|5773\.781|6426\.057|ETD9YY|9805|3163|7815|8756/);
   });
   it('day 6 schedule keeps transfer before the 16:15 flight', () => {
     const m = buildModel(tripData);
@@ -120,6 +118,15 @@ describe('itinerary data', () => {
 });
 
 describe('private data encryption', () => {
+  it('no booking code from private/private.json appears in the public code', () => {
+    // private/ is git-ignored; on machines without it there is nothing to compare.
+    if (!existsSync('private/private.json')) return;
+    const priv = JSON.parse(readFileSync('private/private.json', 'utf8')) as Record<string, Record<string, unknown>>;
+    const secrets = Object.values(priv).flatMap((e) => [e.bookingRef, ...((e.ticketNumbers as string[]) ?? [])]).filter((v): v is string => typeof v === 'string' && v.length >= 5);
+    const pub = [readFileSync('src/data/trip.ts', 'utf8'), readFileSync('src/data/private.enc.json', 'utf8')].join('\n');
+    for (const code of secrets) for (const part of code.split(/[\s:]+/).filter((x) => x.length >= 5 && (/\d/.test(x) || /^[A-Z0-9]+$/.test(x)))) expect(pub.includes(part), part.slice(0, 2) + '…').toBe(false);
+  });
+
   it('encrypt script output decrypts in the app, wrong passphrase fails', async () => {
     const out = 'src/data/private.enc.json';
     const original = readFileSync(out, 'utf8');
